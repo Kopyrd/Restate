@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pg_mieszkania
+    environment:
+      POSTGRES_DB: mieszkania
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypass
+
+    ports:
+      - "5432:5432"
+    volumes:
+
+      - ./data/mieszkania.csv:/data/mieszkania.csv
+      - pgdata:/var/lib/postgresql/data
+      #- ./db/migration:/docker-entrypoint-initdb.d  # Dodaj tę linię aby skrypty SQL były uruchamiane
+
+      #- ./docker-init:/docker-entrypoint-initdb.d
+
+volumes:
+  pgdata:
