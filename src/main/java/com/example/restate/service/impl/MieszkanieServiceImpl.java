@@ -1,10 +1,10 @@
 package com.example.restate.service.impl;
 
+import com.example.restate.dto.MieszkanieSearchCriteria;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.exception.ResourceNotFoundException;
 import com.example.restate.repository.MieszkanieRepository;
 import com.example.restate.service.MieszkanieService;
-import com.example.restate.dto.MieszkanieSearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,16 +20,16 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
+@Transactional
 public class MieszkanieServiceImpl implements MieszkanieService {
 
     private final MieszkanieRepository mieszkanieRepository;
     private final EntityManager entityManager;
 
     @Override
-    public Mieszkanie save(Mieszkanie entity) {
-        return mieszkanieRepository.save(entity);
+    public List<Mieszkanie> findAll() {
+        return mieszkanieRepository.findAll();
     }
 
     @Override
@@ -38,26 +38,25 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     }
 
     @Override
-    public List<Mieszkanie> findAll() {
-        return mieszkanieRepository.findAll();
+    public Mieszkanie save(Mieszkanie mieszkanie) {
+        return mieszkanieRepository.save(mieszkanie);
     }
 
     @Override
-    public Mieszkanie update(Integer id, Mieszkanie entity) {
+    public Mieszkanie update(Integer id, Mieszkanie mieszkanie) {
         Mieszkanie existing = mieszkanieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mieszkanie not found with id: " + id));
 
-        // Update fields
-        existing.setDeveloper(entity.getDeveloper());
-        existing.setInvestment(entity.getInvestment());
-        existing.setNumber(entity.getNumber());
-        existing.setArea(entity.getArea());
-        existing.setPrice(entity.getPrice());
-        existing.setRooms(entity.getRooms());
-        existing.setLat(entity.getLat());
-        existing.setLng(entity.getLng());
-        existing.setDescription(entity.getDescription());
-
+        existing.setDeveloper(mieszkanie.getDeveloper());
+        existing.setInvestment(mieszkanie.getInvestment());
+        existing.setNumber(mieszkanie.getNumber());
+        existing.setArea(mieszkanie.getArea());
+        existing.setPrice(mieszkanie.getPrice());
+        existing.setRooms(mieszkanie.getRooms());
+        existing.setLat(mieszkanie.getLat());
+        existing.setLng(mieszkanie.getLng());
+        existing.setStatus(mieszkanie.getStatus());
+        existing.setDescription(mieszkanie.getDescription());
 
         return mieszkanieRepository.save(existing);
     }
@@ -97,35 +96,50 @@ public class MieszkanieServiceImpl implements MieszkanieService {
 
     @Override
     public List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria) {
-        // Implementacja wzorca
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Mieszkanie> query = cb.createQuery(Mieszkanie.class);
-        Root<Mieszkanie> root = query.from(Mieszkanie.class);
+        Root<Mieszkanie> mieszkanie = query.from(Mieszkanie.class);
 
         List<Predicate> predicates = new ArrayList<>();
 
-        if (criteria.getDeveloper() != null) {
-            predicates.add(cb.equal(root.get("developer"), criteria.getDeveloper()));
+        if (criteria.getDeveloper() != null && !criteria.getDeveloper().isEmpty()) {
+            predicates.add(cb.equal(mieszkanie.get("developer"), criteria.getDeveloper()));
         }
 
-        if (criteria.getMinPrice() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("price"), criteria.getMinPrice()));
-        }
-
-        if (criteria.getMaxPrice() != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("price"), criteria.getMaxPrice()));
-        }
-
-        if (criteria.getMinArea() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("area"), criteria.getMinArea()));
-        }
-
-        if (criteria.getMaxArea() != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("area"), criteria.getMaxArea()));
+        if (criteria.getInvestment() != null && !criteria.getInvestment().isEmpty()) {
+            predicates.add(cb.equal(mieszkanie.get("investment"), criteria.getInvestment()));
         }
 
         if (criteria.getRooms() != null) {
-            predicates.add(cb.equal(root.get("rooms"), criteria.getRooms()));
+            predicates.add(cb.equal(mieszkanie.get("rooms"), criteria.getRooms()));
+        }
+
+        if (criteria.getMinPrice() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(mieszkanie.get("price"), criteria.getMinPrice()));
+        }
+
+        if (criteria.getMaxPrice() != null) {
+            predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("price"), criteria.getMaxPrice()));
+        }
+
+        if (criteria.getMinArea() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(mieszkanie.get("area"), criteria.getMinArea()));
+        }
+
+        if (criteria.getMaxArea() != null) {
+            predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("area"), criteria.getMaxArea()));
+        }
+
+        // Wyszukiwanie w promieniu (jeśli podano współrzędne i promień)
+        if (criteria.getLat() != null && criteria.getLng() != null && criteria.getRadius() != null) {
+            // Uproszczone wyszukiwanie - w rzeczywistości należałoby użyć funkcji geograficznych
+            double latMin = criteria.getLat() - (criteria.getRadius() / 111.0);
+            double latMax = criteria.getLat() + (criteria.getRadius() / 111.0);
+            double lngMin = criteria.getLng() - (criteria.getRadius() / 111.0);
+            double lngMax = criteria.getLng() + (criteria.getRadius() / 111.0);
+
+            predicates.add(cb.between(mieszkanie.get("lat"), latMin, latMax));
+            predicates.add(cb.between(mieszkanie.get("lng"), lngMin, lngMax));
         }
 
         query.where(predicates.toArray(new Predicate[0]));
@@ -143,11 +157,10 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     }
 
     @Override
-    public Mieszkanie changeStatus(Integer id, Mieszkanie.Status newStatus) {
+    public Mieszkanie changeStatus(Integer id, Mieszkanie.Status status) {
         Mieszkanie mieszkanie = mieszkanieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mieszkanie not found with id: " + id));
-
-        mieszkanie.setStatus(newStatus);
+        mieszkanie.setStatus(status);
         return mieszkanieRepository.save(mieszkanie);
     }
 }

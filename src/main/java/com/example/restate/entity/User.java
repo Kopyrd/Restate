@@ -1,17 +1,14 @@
-// User.java
 package com.example.restate.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -48,16 +45,16 @@ public class User implements UserDetails {
     private boolean enabled = true;
 
     @Column(name = "created_at")
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = java.time.LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
