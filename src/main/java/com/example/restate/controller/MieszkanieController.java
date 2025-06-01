@@ -24,11 +24,6 @@ public class MieszkanieController {
 
     private final MieszkanieService mieszkanieService;
 
-    @GetMapping
-    @Operation(summary = "Get all apartments")
-    public ResponseEntity<List<Mieszkanie>> getAllMieszkania() {
-        return ResponseEntity.ok(mieszkanieService.findAll());
-    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get apartment by ID")

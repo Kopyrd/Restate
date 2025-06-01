@@ -1,6 +1,6 @@
 CREATE TABLE mieszkania
 (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     developer TEXT,
     investment TEXT,
     number TEXT,
