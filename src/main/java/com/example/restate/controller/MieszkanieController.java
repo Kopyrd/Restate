@@ -72,11 +72,6 @@ public class MieszkanieController {
         return ResponseEntity.ok(mieszkanieService.findByInvestment(investment));
     }
 
-    @GetMapping("/rooms/{rooms}")
-    @Operation(summary = "Get apartments by number of rooms")
-    public ResponseEntity<List<Mieszkanie>> getByRooms(@PathVariable Integer rooms) {
-        return ResponseEntity.ok(mieszkanieService.findByRooms(rooms));
-    }
 
     @GetMapping("/price-range")
     @Operation(summary = "Get apartments by price range")
@@ -100,11 +95,6 @@ public class MieszkanieController {
         return ResponseEntity.ok(mieszkanieService.searchByCriteria(criteria));
     }
 
-    @GetMapping("/developers")
-    @Operation(summary = "Get all unique developers")
-    public ResponseEntity<List<String>> getAllDevelopers() {
-        return ResponseEntity.ok(mieszkanieService.getAllDevelopers());
-    }
 
     @GetMapping("/developers/{developer}/investments")
     @Operation(summary = "Get investments by developer")
