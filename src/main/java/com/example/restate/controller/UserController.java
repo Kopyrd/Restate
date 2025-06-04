@@ -1,5 +1,6 @@
 package com.example.restate.controller;
 
+import com.example.restate.dto.UserProfileDTO;
 import com.example.restate.entity.User;
 import com.example.restate.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,10 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,10 +76,11 @@ public class UserController {
     @GetMapping("/profile")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @Operation(summary = "Get current user profile", description = "Available for all authenticated users")
-    public ResponseEntity<User> getCurrentUser(@Parameter(hidden = true) @RequestAttribute("username") String username) {
+    public ResponseEntity<UserProfileDTO> getCurrentUser(Authentication authentication) {
+        String username = authentication.getName();
         return userService.findByUsername(username)
+                .map(UserProfileDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
 }

@@ -32,12 +32,18 @@ public class JwtUtil {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+        } catch (Exception e) {
+            // Log the exception with a more specific message
+            // e.g., "Failed to extract username from token: " + e.getMessage()
+            throw new IllegalArgumentException("Invalid JWT token", e);
+        }
     }
 
     public boolean validateToken(String token, String username) {

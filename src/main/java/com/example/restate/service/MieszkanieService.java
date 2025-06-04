@@ -5,6 +5,7 @@ import com.example.restate.dto.MieszkanieSearchCriteria;
 
 import java.math.BigDecimal;
 import java.util.List;
+import com.example.restate.dto.UpdateMieszkanieDTO;
 
 public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
 
@@ -16,4 +17,5 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
     List<String> getAllDevelopers();
     List<String> getInvestmentsByDeveloper(String developer);
     Mieszkanie changeStatus(Integer id, Mieszkanie.Status newStatus);
+    Mieszkanie updateFromDTO(Integer id, UpdateMieszkanieDTO dto);
 }

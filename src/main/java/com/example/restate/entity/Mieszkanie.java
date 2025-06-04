@@ -1,5 +1,6 @@
 package com.example.restate.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -41,9 +42,6 @@ public class Mieszkanie {
     @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 
-    @Column(name = "country")
-    private String country;
-
     @Column(name = "voivodeship")
     private String voivodeship;
 
@@ -56,7 +54,6 @@ public class Mieszkanie {
     @Column(name = "floor")
     private Integer floor;
 
-    // Dodatkowe pola dla funkcjonalności
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private Status status = Status.AVAILABLE;
@@ -66,6 +63,7 @@ public class Mieszkanie {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
+    @JsonIgnore
     private User createdBy;
 
     @CreationTimestamp

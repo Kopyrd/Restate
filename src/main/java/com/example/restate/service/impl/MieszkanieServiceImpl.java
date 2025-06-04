@@ -1,6 +1,7 @@
 package com.example.restate.service.impl;
 
 import com.example.restate.dto.MieszkanieSearchCriteria;
+import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.exception.ResourceNotFoundException;
 import com.example.restate.repository.MieszkanieRepository;
@@ -140,4 +141,26 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         mieszkanie.setStatus(status);
         return mieszkanieRepository.save(mieszkanie);
     }
+
+    @Override
+    public Mieszkanie updateFromDTO(Integer id, UpdateMieszkanieDTO dto) {
+        Mieszkanie existing = findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Mieszkanie o ID " + id + " nie znalezione"));
+
+        // Aktualizuj tylko niepuste pola
+        if (dto.getDeveloper() != null) existing.setDeveloper(dto.getDeveloper());
+        if (dto.getInvestment() != null) existing.setInvestment(dto.getInvestment());
+        if (dto.getNumber() != null) existing.setNumber(dto.getNumber());
+        if (dto.getArea() != null) existing.setArea(dto.getArea());
+        if (dto.getPrice() != null) existing.setPrice(dto.getPrice());
+        if (dto.getVoivodeship() != null) existing.setVoivodeship(dto.getVoivodeship());
+        if (dto.getCity() != null) existing.setCity(dto.getCity());
+        if (dto.getDistrict() != null) existing.setDistrict(dto.getDistrict());
+        if (dto.getFloor() != null) existing.setFloor(dto.getFloor());
+        if (dto.getDescription() != null) existing.setDescription(dto.getDescription());
+
+        return save(existing);
+    }
+
+
 }
