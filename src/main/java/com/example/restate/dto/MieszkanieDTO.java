@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode; // ✅ DODAJ IMPORT
 
 @Data
 @Builder
@@ -19,13 +20,12 @@ public class MieszkanieDTO {
     private String number;
     private BigDecimal area;
     private BigDecimal price;
-    private Integer rooms;
-    private Double lat;
-    private Double lng;
+    private String voivodeship;
+    private String city;
+    private String district;
+    private Integer floor;
     private Mieszkanie.Status status;
     private String description;
-    private Integer floor;
-    private Integer yearBuilt;
     private BigDecimal pricePerMeter;
 
     // Factory Method Pattern
@@ -37,9 +37,10 @@ public class MieszkanieDTO {
                 .number(mieszkanie.getNumber())
                 .area(mieszkanie.getArea())
                 .price(mieszkanie.getPrice())
-                .rooms(mieszkanie.getRooms())
-                .lat(mieszkanie.getLat())
-                .lng(mieszkanie.getLng())
+                .voivodeship(mieszkanie.getVoivodeship())
+                .city(mieszkanie.getCity())
+                .district(mieszkanie.getDistrict())
+                .floor(mieszkanie.getFloor())
                 .status(mieszkanie.getStatus())
                 .description(mieszkanie.getDescription())
                 .pricePerMeter(calculatePricePerMeter(mieszkanie))
@@ -49,7 +50,8 @@ public class MieszkanieDTO {
     private static BigDecimal calculatePricePerMeter(Mieszkanie mieszkanie) {
         if (mieszkanie.getPrice() != null && mieszkanie.getArea() != null
                 && mieszkanie.getArea().compareTo(BigDecimal.ZERO) > 0) {
-            return mieszkanie.getPrice().divide(mieszkanie.getArea(), 2, BigDecimal.ROUND_HALF_UP);
+            // ✅ ZMIEŃ NA NOWY SPOSÓB:
+            return mieszkanie.getPrice().divide(mieszkanie.getArea(), 2, RoundingMode.HALF_UP);
         }
         return null;
     }

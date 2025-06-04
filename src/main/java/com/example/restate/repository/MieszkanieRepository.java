@@ -16,8 +16,6 @@ public interface MieszkanieRepository extends JpaRepository<Mieszkanie, Integer>
 
     List<Mieszkanie> findByInvestment(String investment);
 
-    List<Mieszkanie> findByRooms(Integer rooms);
-
     List<Mieszkanie> findByStatus(Mieszkanie.Status status);
 
     @Query("SELECT m FROM Mieszkanie m WHERE m.price BETWEEN :minPrice AND :maxPrice")

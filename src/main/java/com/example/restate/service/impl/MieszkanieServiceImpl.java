@@ -52,9 +52,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         existing.setNumber(mieszkanie.getNumber());
         existing.setArea(mieszkanie.getArea());
         existing.setPrice(mieszkanie.getPrice());
-        existing.setRooms(mieszkanie.getRooms());
-        existing.setLat(mieszkanie.getLat());
-        existing.setLng(mieszkanie.getLng());
         existing.setStatus(mieszkanie.getStatus());
         existing.setDescription(mieszkanie.getDescription());
 
@@ -79,10 +76,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         return mieszkanieRepository.findByInvestment(investment);
     }
 
-    @Override
-    public List<Mieszkanie> findByRooms(Integer rooms) {
-        return mieszkanieRepository.findByRooms(rooms);
-    }
 
     @Override
     public List<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
@@ -110,10 +103,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
             predicates.add(cb.equal(mieszkanie.get("investment"), criteria.getInvestment()));
         }
 
-        if (criteria.getRooms() != null) {
-            predicates.add(cb.equal(mieszkanie.get("rooms"), criteria.getRooms()));
-        }
-
         if (criteria.getMinPrice() != null) {
             predicates.add(cb.greaterThanOrEqualTo(mieszkanie.get("price"), criteria.getMinPrice()));
         }
@@ -128,18 +117,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
 
         if (criteria.getMaxArea() != null) {
             predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("area"), criteria.getMaxArea()));
-        }
-
-        // Wyszukiwanie w promieniu (jeśli podano współrzędne i promień)
-        if (criteria.getLat() != null && criteria.getLng() != null && criteria.getRadius() != null) {
-            // Uproszczone wyszukiwanie - w rzeczywistości należałoby użyć funkcji geograficznych
-            double latMin = criteria.getLat() - (criteria.getRadius() / 111.0);
-            double latMax = criteria.getLat() + (criteria.getRadius() / 111.0);
-            double lngMin = criteria.getLng() - (criteria.getRadius() / 111.0);
-            double lngMax = criteria.getLng() + (criteria.getRadius() / 111.0);
-
-            predicates.add(cb.between(mieszkanie.get("lat"), latMin, latMax));
-            predicates.add(cb.between(mieszkanie.get("lng"), lngMin, lngMax));
         }
 
         query.where(predicates.toArray(new Predicate[0]));

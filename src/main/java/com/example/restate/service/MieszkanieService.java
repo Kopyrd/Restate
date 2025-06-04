@@ -10,7 +10,6 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
 
     List<Mieszkanie> findByDeveloper(String developer);
     List<Mieszkanie> findByInvestment(String investment);
-    List<Mieszkanie> findByRooms(Integer rooms);
     List<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
     List<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea);
     List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria);

@@ -41,14 +41,20 @@ public class Mieszkanie {
     @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 
-    @Column(name = "rooms")
-    private Integer rooms;
+    @Column(name = "country")
+    private String country;
 
-    @Column(name = "lat")
-    private Double lat;
+    @Column(name = "voivodeship")
+    private String voivodeship;
 
-    @Column(name = "lng")
-    private Double lng;
+    @Column(name = "city")
+    private String city;
+
+    @Column(name = "district")
+    private String district;
+
+    @Column(name = "floor")
+    private Integer floor;
 
     // Dodatkowe pola dla funkcjonalności
     @Column(name = "status")
@@ -61,7 +67,6 @@ public class Mieszkanie {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;
-
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
