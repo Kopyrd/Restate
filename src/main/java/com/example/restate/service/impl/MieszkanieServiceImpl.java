@@ -1,16 +1,21 @@
 package com.example.restate.service.impl;
 
 import com.example.restate.dto.MieszkanieSearchCriteria;
+import com.example.restate.dto.PageResponse;
 import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.exception.ResourceNotFoundException;
 import com.example.restate.repository.MieszkanieRepository;
 import com.example.restate.service.MieszkanieService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -31,6 +36,12 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     @Override
     public List<Mieszkanie> findAll() {
         return mieszkanieRepository.findAll();
+    }
+
+    @Override
+    public PageResponse<Mieszkanie> findAll(Pageable pageable) {
+        Page<Mieszkanie> page = mieszkanieRepository.findAll(pageable);
+        return convertToPageResponse(page);
     }
 
     @Override
@@ -73,14 +84,31 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     }
 
     @Override
+    public PageResponse<Mieszkanie> findByDeveloper(String developer, Pageable pageable) {
+        Page<Mieszkanie> page = mieszkanieRepository.findByDeveloper(developer, pageable);
+        return convertToPageResponse(page);
+    }
+
+    @Override
     public List<Mieszkanie> findByInvestment(String investment) {
         return mieszkanieRepository.findByInvestment(investment);
     }
 
+    @Override
+    public PageResponse<Mieszkanie> findByInvestment(String investment, Pageable pageable) {
+        Page<Mieszkanie> page = mieszkanieRepository.findByInvestment(investment, pageable);
+        return convertToPageResponse(page);
+    }
 
     @Override
     public List<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
         return mieszkanieRepository.findByPriceRange(minPrice, maxPrice);
+    }
+
+    @Override
+    public PageResponse<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        Page<Mieszkanie> page = mieszkanieRepository.findByPriceRange(minPrice, maxPrice, pageable);
+        return convertToPageResponse(page);
     }
 
     @Override
@@ -89,11 +117,53 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     }
 
     @Override
+    public PageResponse<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea, Pageable pageable) {
+        Page<Mieszkanie> page = mieszkanieRepository.findByAreaRange(minArea, maxArea, pageable);
+        return convertToPageResponse(page);
+    }
+
+    @Override
     public List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Mieszkanie> query = cb.createQuery(Mieszkanie.class);
         Root<Mieszkanie> mieszkanie = query.from(Mieszkanie.class);
 
+        List<Predicate> predicates = buildPredicatesFromCriteria(cb, mieszkanie, criteria);
+
+        query.where(predicates.toArray(new Predicate[0]));
+        return entityManager.createQuery(query).getResultList();
+    }
+
+    @Override
+    public PageResponse<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Mieszkanie> query = cb.createQuery(Mieszkanie.class);
+        Root<Mieszkanie> mieszkanie = query.from(Mieszkanie.class);
+
+        List<Predicate> predicates = buildPredicatesFromCriteria(cb, mieszkanie, criteria);
+
+        query.where(predicates.toArray(new Predicate[0]));
+
+        // Count total results
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<Mieszkanie> countRoot = countQuery.from(Mieszkanie.class);
+        countQuery.select(cb.count(countRoot));
+        countQuery.where(predicates.toArray(new Predicate[0]));
+        Long totalElements = entityManager.createQuery(countQuery).getSingleResult();
+
+        // Apply pagination
+        TypedQuery<Mieszkanie> typedQuery = entityManager.createQuery(query);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<Mieszkanie> content = typedQuery.getResultList();
+
+        // Create Page object
+        Page<Mieszkanie> page = new PageImpl<>(content, pageable, totalElements);
+        return convertToPageResponse(page);
+    }
+
+    private List<Predicate> buildPredicatesFromCriteria(CriteriaBuilder cb, Root<Mieszkanie> mieszkanie, MieszkanieSearchCriteria criteria) {
         List<Predicate> predicates = new ArrayList<>();
 
         if (criteria.getDeveloper() != null && !criteria.getDeveloper().isEmpty()) {
@@ -120,8 +190,20 @@ public class MieszkanieServiceImpl implements MieszkanieService {
             predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("area"), criteria.getMaxArea()));
         }
 
-        query.where(predicates.toArray(new Predicate[0]));
-        return entityManager.createQuery(query).getResultList();
+        return predicates;
+    }
+
+    // Helper method to convert Spring Data Page to our custom PageResponse
+    private <T> PageResponse<T> convertToPageResponse(Page<T> page) {
+        return PageResponse.<T>builder()
+                .content(page.getContent())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .first(page.isFirst())
+                .build();
     }
 
     @Override

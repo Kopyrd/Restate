@@ -2,6 +2,7 @@ package com.example.restate.controller;
 
 import com.example.restate.dto.CreateMieszkanieDTO;
 import com.example.restate.dto.MieszkanieDTO;
+import com.example.restate.dto.PageResponse;
 import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.service.MieszkanieService;
@@ -10,6 +11,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +31,38 @@ import java.util.stream.Collectors;
 public class MieszkanieController {
 
     private final MieszkanieService mieszkanieService;
+
+    @GetMapping
+    @Operation(summary = "Get all apartments with pagination")
+    public ResponseEntity<PageResponse<MieszkanieDTO>> getAllMieszkania(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<Mieszkanie> pageResponse = mieszkanieService.findAll(pageable);
+
+        // Convert entities to DTOs
+        List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                .map(MieszkanieDTO::fromEntity)
+                .collect(Collectors.toList());
+
+        // Create new PageResponse with DTOs
+        PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                .content(dtos)
+                .pageNumber(pageResponse.getPageNumber())
+                .pageSize(pageResponse.getPageSize())
+                .totalElements(pageResponse.getTotalElements())
+                .totalPages(pageResponse.getTotalPages())
+                .last(pageResponse.isLast())
+                .first(pageResponse.isFirst())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get apartment by ID")
@@ -67,56 +103,214 @@ public class MieszkanieController {
 
     @GetMapping("/developer/{developer}")
     @Operation(summary = "Get apartments by developer")
-    public ResponseEntity<List<MieszkanieDTO>> getByDeveloper(@PathVariable String developer) {
-        List<MieszkanieDTO> dtos = mieszkanieService.findByDeveloper(developer)
-                .stream()
-                .map(MieszkanieDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<?> getByDeveloper(
+            @PathVariable String developer,
+            @RequestParam(required = false) Boolean paginated,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        if (Boolean.TRUE.equals(paginated)) {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByDeveloper(developer, pageable);
+
+            // Convert entities to DTOs
+            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+
+            // Create new PageResponse with DTOs
+            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                    .content(dtos)
+                    .pageNumber(pageResponse.getPageNumber())
+                    .pageSize(pageResponse.getPageSize())
+                    .totalElements(pageResponse.getTotalElements())
+                    .totalPages(pageResponse.getTotalPages())
+                    .last(pageResponse.isLast())
+                    .first(pageResponse.isFirst())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } else {
+            List<MieszkanieDTO> dtos = mieszkanieService.findByDeveloper(developer)
+                    .stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
     }
 
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
-    public ResponseEntity<List<MieszkanieDTO>> getByInvestment(@PathVariable String investment) {
-        List<MieszkanieDTO> dtos = mieszkanieService.findByInvestment(investment)
-                .stream()
-                .map(MieszkanieDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<?> getByInvestment(
+            @PathVariable String investment,
+            @RequestParam(required = false) Boolean paginated,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        if (Boolean.TRUE.equals(paginated)) {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByInvestment(investment, pageable);
+
+            // Convert entities to DTOs
+            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+
+            // Create new PageResponse with DTOs
+            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                    .content(dtos)
+                    .pageNumber(pageResponse.getPageNumber())
+                    .pageSize(pageResponse.getPageSize())
+                    .totalElements(pageResponse.getTotalElements())
+                    .totalPages(pageResponse.getTotalPages())
+                    .last(pageResponse.isLast())
+                    .first(pageResponse.isFirst())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } else {
+            List<MieszkanieDTO> dtos = mieszkanieService.findByInvestment(investment)
+                    .stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
     }
 
     @GetMapping("/price-range")
     @Operation(summary = "Get apartments by price range")
-    public ResponseEntity<List<MieszkanieDTO>> getByPriceRange(
+    public ResponseEntity<?> getByPriceRange(
             @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice) {
-        List<MieszkanieDTO> dtos = mieszkanieService.findByPriceRange(minPrice, maxPrice)
-                .stream()
-                .map(MieszkanieDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+            @RequestParam BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean paginated,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        if (Boolean.TRUE.equals(paginated)) {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByPriceRange(minPrice, maxPrice, pageable);
+
+            // Convert entities to DTOs
+            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+
+            // Create new PageResponse with DTOs
+            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                    .content(dtos)
+                    .pageNumber(pageResponse.getPageNumber())
+                    .pageSize(pageResponse.getPageSize())
+                    .totalElements(pageResponse.getTotalElements())
+                    .totalPages(pageResponse.getTotalPages())
+                    .last(pageResponse.isLast())
+                    .first(pageResponse.isFirst())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } else {
+            List<MieszkanieDTO> dtos = mieszkanieService.findByPriceRange(minPrice, maxPrice)
+                    .stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
     }
 
     @GetMapping("/area-range")
     @Operation(summary = "Get apartments by area range")
-    public ResponseEntity<List<MieszkanieDTO>> getByAreaRange(
+    public ResponseEntity<?> getByAreaRange(
             @RequestParam BigDecimal minArea,
-            @RequestParam BigDecimal maxArea) {
-        List<MieszkanieDTO> dtos = mieszkanieService.findByAreaRange(minArea, maxArea)
-                .stream()
-                .map(MieszkanieDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+            @RequestParam BigDecimal maxArea,
+            @RequestParam(required = false) Boolean paginated,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        if (Boolean.TRUE.equals(paginated)) {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByAreaRange(minArea, maxArea, pageable);
+
+            // Convert entities to DTOs
+            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+
+            // Create new PageResponse with DTOs
+            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                    .content(dtos)
+                    .pageNumber(pageResponse.getPageNumber())
+                    .pageSize(pageResponse.getPageSize())
+                    .totalElements(pageResponse.getTotalElements())
+                    .totalPages(pageResponse.getTotalPages())
+                    .last(pageResponse.isLast())
+                    .first(pageResponse.isFirst())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } else {
+            List<MieszkanieDTO> dtos = mieszkanieService.findByAreaRange(minArea, maxArea)
+                    .stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
     }
 
     @PostMapping("/search")
     @Operation(summary = "Search apartments by multiple criteria")
-    public ResponseEntity<List<MieszkanieDTO>> searchByCriteria(@RequestBody MieszkanieSearchCriteria criteria) {
-        List<MieszkanieDTO> dtos = mieszkanieService.searchByCriteria(criteria)
-                .stream()
-                .map(MieszkanieDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<?> searchByCriteria(
+            @RequestBody MieszkanieSearchCriteria criteria,
+            @RequestParam(required = false) Boolean paginated,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        if (Boolean.TRUE.equals(paginated)) {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            PageResponse<Mieszkanie> pageResponse = mieszkanieService.searchByCriteria(criteria, pageable);
+
+            // Convert entities to DTOs
+            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+
+            // Create new PageResponse with DTOs
+            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                    .content(dtos)
+                    .pageNumber(pageResponse.getPageNumber())
+                    .pageSize(pageResponse.getPageSize())
+                    .totalElements(pageResponse.getTotalElements())
+                    .totalPages(pageResponse.getTotalPages())
+                    .last(pageResponse.isLast())
+                    .first(pageResponse.isFirst())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } else {
+            List<MieszkanieDTO> dtos = mieszkanieService.searchByCriteria(criteria)
+                    .stream()
+                    .map(MieszkanieDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
     }
 
     @GetMapping("/developers/{developer}/investments")
