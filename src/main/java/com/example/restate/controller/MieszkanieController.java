@@ -7,6 +7,8 @@ import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.service.MieszkanieService;
 import com.example.restate.dto.MieszkanieSearchCriteria;
+import com.example.restate.service.search.SearchContext;
+import com.example.restate.service.search.SearchStrategy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -31,6 +35,7 @@ import java.util.stream.Collectors;
 public class MieszkanieController {
 
     private final MieszkanieService mieszkanieService;
+    private final SearchContext searchContext;
 
     @GetMapping
     @Operation(summary = "Get all apartments with pagination")
@@ -115,12 +120,12 @@ public class MieszkanieController {
 
             PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByDeveloper(developer, pageable);
 
-            // Convert entities to DTOs
+
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
                     .map(MieszkanieDTO::fromEntity)
                     .collect(Collectors.toList());
 
-            // Create new PageResponse with DTOs
+
             PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
                     .content(dtos)
                     .pageNumber(pageResponse.getPageNumber())
@@ -148,12 +153,12 @@ public class MieszkanieController {
 
             PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByInvestment(investment, pageable);
 
-            // Convert entities to DTOs
+
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
                     .map(MieszkanieDTO::fromEntity)
                     .collect(Collectors.toList());
 
-            // Create new PageResponse with DTOs
+
             PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
                     .content(dtos)
                     .pageNumber(pageResponse.getPageNumber())
@@ -183,12 +188,12 @@ public class MieszkanieController {
 
             PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByPriceRange(minPrice, maxPrice, pageable);
 
-            // Convert entities to DTOs
+
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
                     .map(MieszkanieDTO::fromEntity)
                     .collect(Collectors.toList());
 
-            // Create new PageResponse with DTOs
+
             PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
                     .content(dtos)
                     .pageNumber(pageResponse.getPageNumber())
@@ -218,12 +223,12 @@ public class MieszkanieController {
 
             PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByAreaRange(minArea, maxArea, pageable);
 
-            // Convert entities to DTOs
+
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
                     .map(MieszkanieDTO::fromEntity)
                     .collect(Collectors.toList());
 
-            // Create new PageResponse with DTOs
+
             PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
                     .content(dtos)
                     .pageNumber(pageResponse.getPageNumber())
@@ -238,36 +243,75 @@ public class MieszkanieController {
     }
 
     @PostMapping("/search")
-    @Operation(summary = "Search apartments by multiple criteria")
+    @Operation(summary = "Search apartments by multiple criteria using Strategy Pattern")
     public ResponseEntity<?> searchByCriteria(
             @RequestBody MieszkanieSearchCriteria criteria,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String strategy) {
 
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.searchByCriteria(criteria, pageable);
+        PageResponse<Mieszkanie> pageResponse;
 
-            // Convert entities to DTOs
-            List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
+        // Polimorfizm - różne strategie w zależności od parametru
+        if (strategy != null) {
+            SearchStrategy.SearchType type = SearchStrategy.SearchType.valueOf(strategy.toUpperCase());
+            pageResponse = searchContext.executeSearch(type, criteria, pageable);
+        } else {
+            pageResponse = searchContext.executeAutoSearch(criteria, pageable);
+        }
 
-            // Create new PageResponse with DTOs
-            PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
-                    .content(dtos)
-                    .pageNumber(pageResponse.getPageNumber())
-                    .pageSize(pageResponse.getPageSize())
-                    .totalElements(pageResponse.getTotalElements())
-                    .totalPages(pageResponse.getTotalPages())
-                    .last(pageResponse.isLast())
-                    .first(pageResponse.isFirst())
-                    .build();
+        List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
+                .map(MieszkanieDTO::fromEntity)
+                .collect(Collectors.toList());
 
-            return ResponseEntity.ok(response);
+        PageResponse<MieszkanieDTO> response = PageResponse.<MieszkanieDTO>builder()
+                .content(dtos)
+                .pageNumber(pageResponse.getPageNumber())
+                .pageSize(pageResponse.getPageSize())
+                .totalElements(pageResponse.getTotalElements())
+                .totalPages(pageResponse.getTotalPages())
+                .last(pageResponse.isLast())
+                .first(pageResponse.isFirst())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search-demo")
+    @Operation(summary = "Different search strategies")
+    public ResponseEntity<?> demonstratePolymorphism(
+            @RequestParam(required = false) String developer,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
+
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer(developer)
+                .city(city)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Map<String, PageResponse<Mieszkanie>> results = new HashMap<>();
+
+        results.put("SIMPLE", searchContext.executeSearch(
+            SearchStrategy.SearchType.SIMPLE, criteria, pageable));
+        results.put("ADVANCED", searchContext.executeSearch(
+            SearchStrategy.SearchType.ADVANCED, criteria, pageable));
+        results.put("BY_LOCATION", searchContext.executeSearch(
+            SearchStrategy.SearchType.BY_LOCATION, criteria, pageable));
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Polymorphism demonstration - same interface, different implementations",
+            "results", results
+        ));
     }
 
     @GetMapping("/developers/{developer}/investments")
