@@ -105,13 +105,11 @@ public class MieszkanieController {
     @Operation(summary = "Get apartments by developer")
     public ResponseEntity<?> getByDeveloper(
             @PathVariable String developer,
-            @RequestParam(required = false) Boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        if (Boolean.TRUE.equals(paginated)) {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -134,26 +132,17 @@ public class MieszkanieController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } else {
-            List<MieszkanieDTO> dtos = mieszkanieService.findByDeveloper(developer)
-                    .stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
     }
 
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
     public ResponseEntity<?> getByInvestment(
             @PathVariable String investment,
-            @RequestParam(required = false) Boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        if (Boolean.TRUE.equals(paginated)) {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -176,13 +165,7 @@ public class MieszkanieController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } else {
-            List<MieszkanieDTO> dtos = mieszkanieService.findByInvestment(investment)
-                    .stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
+
     }
 
     @GetMapping("/price-range")
@@ -190,13 +173,11 @@ public class MieszkanieController {
     public ResponseEntity<?> getByPriceRange(
             @RequestParam BigDecimal minPrice,
             @RequestParam BigDecimal maxPrice,
-            @RequestParam(required = false) Boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        if (Boolean.TRUE.equals(paginated)) {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -219,13 +200,6 @@ public class MieszkanieController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } else {
-            List<MieszkanieDTO> dtos = mieszkanieService.findByPriceRange(minPrice, maxPrice)
-                    .stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
     }
 
     @GetMapping("/area-range")
@@ -233,13 +207,12 @@ public class MieszkanieController {
     public ResponseEntity<?> getByAreaRange(
             @RequestParam BigDecimal minArea,
             @RequestParam BigDecimal maxArea,
-            @RequestParam(required = false) Boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        if (Boolean.TRUE.equals(paginated)) {
+
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -262,26 +235,17 @@ public class MieszkanieController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } else {
-            List<MieszkanieDTO> dtos = mieszkanieService.findByAreaRange(minArea, maxArea)
-                    .stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
     }
 
     @PostMapping("/search")
     @Operation(summary = "Search apartments by multiple criteria")
     public ResponseEntity<?> searchByCriteria(
             @RequestBody MieszkanieSearchCriteria criteria,
-            @RequestParam(required = false) Boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        if (Boolean.TRUE.equals(paginated)) {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -304,13 +268,6 @@ public class MieszkanieController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } else {
-            List<MieszkanieDTO> dtos = mieszkanieService.searchByCriteria(criteria)
-                    .stream()
-                    .map(MieszkanieDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
     }
 
     @GetMapping("/developers/{developer}/investments")
