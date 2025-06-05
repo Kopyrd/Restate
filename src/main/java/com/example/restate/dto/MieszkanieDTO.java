@@ -50,7 +50,6 @@ public class MieszkanieDTO {
     private static BigDecimal calculatePricePerMeter(Mieszkanie mieszkanie) {
         if (mieszkanie.getPrice() != null && mieszkanie.getArea() != null
                 && mieszkanie.getArea().compareTo(BigDecimal.ZERO) > 0) {
-            // ✅ ZMIEŃ NA NOWY SPOSÓB:
             return mieszkanie.getPrice().divide(mieszkanie.getArea(), 2, RoundingMode.HALF_UP);
         }
         return null;

@@ -11,14 +11,14 @@ import com.example.restate.dto.UpdateMieszkanieDTO;
 
 public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
 
-    // Non-paginated methods
+
     List<Mieszkanie> findByDeveloper(String developer);
     List<Mieszkanie> findByInvestment(String investment);
     List<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
     List<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea);
     List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria);
 
-    // Paginated methods
+
     PageResponse<Mieszkanie> findAll(Pageable pageable);
     PageResponse<Mieszkanie> findByDeveloper(String developer, Pageable pageable);
     PageResponse<Mieszkanie> findByInvestment(String investment, Pageable pageable);
@@ -26,7 +26,7 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
     PageResponse<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea, Pageable pageable);
     PageResponse<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria, Pageable pageable);
 
-    // Utility methods
+
     List<String> getAllDevelopers();
     List<String> getInvestmentsByDeveloper(String developer);
     Mieszkanie changeStatus(Integer id, Mieszkanie.Status newStatus);

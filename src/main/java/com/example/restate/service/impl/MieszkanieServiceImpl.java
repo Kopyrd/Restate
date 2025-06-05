@@ -107,7 +107,7 @@ public class MieszkanieServiceImpl implements MieszkanieService {
 
     @Override
     public PageResponse<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
-        Page<Mieszkanie> page = mieszkanieRepository.findByPriceRange(minPrice, maxPrice, pageable);
+        Page<Mieszkanie> page = mieszkanieRepository.findByPriceBetween(minPrice, maxPrice, pageable);
         return convertToPageResponse(page);
     }
 
@@ -118,7 +118,7 @@ public class MieszkanieServiceImpl implements MieszkanieService {
 
     @Override
     public PageResponse<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea, Pageable pageable) {
-        Page<Mieszkanie> page = mieszkanieRepository.findByAreaRange(minArea, maxArea, pageable);
+        Page<Mieszkanie> page = mieszkanieRepository.findByAreaBetween(minArea, maxArea, pageable);
         return convertToPageResponse(page);
     }
 

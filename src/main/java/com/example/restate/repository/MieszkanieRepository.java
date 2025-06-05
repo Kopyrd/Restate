@@ -32,17 +32,20 @@ public interface MieszkanieRepository extends JpaRepository<Mieszkanie, Integer>
     Page<Mieszkanie> findByInvestment(String investment, Pageable pageable);
     Page<Mieszkanie> findByStatus(Mieszkanie.Status status, Pageable pageable);
 
-    @Query("SELECT m FROM Mieszkanie m WHERE m.price BETWEEN :minPrice AND :maxPrice")
-    Page<Mieszkanie> findByPriceRange(@Param("minPrice") BigDecimal minPrice,
-                                      @Param("maxPrice") BigDecimal maxPrice,
-                                      Pageable pageable);
 
-    @Query("SELECT m FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea")
-    Page<Mieszkanie> findByAreaRange(@Param("minArea") BigDecimal minArea,
-                                     @Param("maxArea") BigDecimal maxArea,
-                                     Pageable pageable);
+    @Query(value = "SELECT m FROM Mieszkanie m WHERE m.price BETWEEN :minPrice AND :maxPrice",
+           countQuery = "SELECT COUNT(m) FROM Mieszkanie m WHERE m.price BETWEEN :minPrice AND :maxPrice")
+    Page<Mieszkanie> findByPriceBetween(@Param("minPrice") BigDecimal minPrice, 
+                                        @Param("maxPrice") BigDecimal maxPrice, 
+                                        Pageable pageable);
 
-    // Utility methods
+    @Query(value = "SELECT m FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea",
+           countQuery = "SELECT COUNT(m) FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea")
+    Page<Mieszkanie> findByAreaBetween(@Param("minArea") BigDecimal minArea, 
+                                       @Param("maxArea") BigDecimal maxArea, 
+                                       Pageable pageable);
+
+
     @Query("SELECT DISTINCT m.developer FROM Mieszkanie m")
     List<String> findAllDevelopers();
 
