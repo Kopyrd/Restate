@@ -7,10 +7,11 @@ import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.service.MieszkanieService;
 import com.example.restate.dto.MieszkanieSearchCriteria;
+import com.example.restate.service.search.SearchContext;
+import com.example.restate.service.search.SearchStrategy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -18,19 +19,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/mieszkania")
-@RequiredArgsConstructor
 @Tag(name = "Mieszkania", description = "Endpoints for managing apartments")
+@RequiredArgsConstructor
 public class MieszkanieController {
 
     private final MieszkanieService mieszkanieService;
+    private final SearchContext searchContext;
 
     @GetMapping
     @Operation(summary = "Get all apartments with pagination")
@@ -110,10 +115,15 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByDeveloper(developer, pageable);
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer(developer)
+                .build();
+
+        PageResponse<Mieszkanie> pageResponse = searchContext.executeSearch(
+                SearchStrategy.SearchType.SIMPLE, criteria, pageable);
 
             // Convert entities to DTOs
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
@@ -134,6 +144,37 @@ public class MieszkanieController {
             return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/search-demo")
+    @Operation(summary = "Demonstrates polymorphism with different search strategies")
+    public ResponseEntity<?> demonstratePolymorphism(
+            @RequestParam(required = false) String developer,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
+
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer(developer)
+                .city(city)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Map<String, PageResponse<Mieszkanie>> results = new HashMap<>();
+        results.put("SIMPLE", searchContext.executeSearch(
+                SearchStrategy.SearchType.SIMPLE, criteria, pageable));
+        results.put("ADVANCED", searchContext.executeSearch(
+                SearchStrategy.SearchType.ADVANCED, criteria, pageable));
+        results.put("BY_LOCATION", searchContext.executeSearch(
+                SearchStrategy.SearchType.BY_LOCATION, criteria, pageable));
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Polymorphism demonstration - same interface, different implementations",
+                "results", results
+        ));
+    }
+
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
     public ResponseEntity<?> getByInvestment(
@@ -143,10 +184,15 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByInvestment(investment, pageable);
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .investment(investment)
+                .build();
+
+        PageResponse<Mieszkanie> pageResponse = searchContext.executeSearch(
+                SearchStrategy.SearchType.SIMPLE, criteria, pageable);
 
             // Convert entities to DTOs
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
@@ -178,10 +224,16 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByPriceRange(minPrice, maxPrice, pageable);
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+
+        PageResponse<Mieszkanie> pageResponse = searchContext.executeSearch(
+                SearchStrategy.SearchType.ADVANCED, criteria, pageable);
 
             // Convert entities to DTOs
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
@@ -213,10 +265,16 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "asc") String sortDir) {
 
 
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.findByAreaRange(minArea, maxArea, pageable);
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .minArea(minArea)
+                .maxArea(maxArea)
+                .build();
+
+        PageResponse<Mieszkanie> pageResponse = searchContext.executeSearch(
+                SearchStrategy.SearchType.ADVANCED, criteria, pageable);
 
             // Convert entities to DTOs
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
@@ -238,18 +296,25 @@ public class MieszkanieController {
     }
 
     @PostMapping("/search")
-    @Operation(summary = "Search apartments by multiple criteria")
+    @Operation(summary = "Search apartments by multiple criteria using Strategy Pattern")
     public ResponseEntity<?> searchByCriteria(
             @RequestBody MieszkanieSearchCriteria criteria,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String strategy) {
 
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            PageResponse<Mieszkanie> pageResponse = mieszkanieService.searchByCriteria(criteria, pageable);
+            PageResponse<Mieszkanie> pageResponse;
+            if (strategy != null) {
+                SearchStrategy.SearchType type = SearchStrategy.SearchType.valueOf(strategy.toUpperCase());
+                pageResponse = searchContext.executeSearch(type, criteria, pageable);
+            } else {
+                pageResponse = searchContext.executeAutoSearch(criteria, pageable);
+            }
 
             // Convert entities to DTOs
             List<MieszkanieDTO> dtos = pageResponse.getContent().stream()
