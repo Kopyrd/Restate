@@ -246,4 +246,65 @@ public class AuthControllerIntegrationTest extends IntegrationTestConfig {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
+
+    @Test
+    void testRegisterWithInvalidData() {
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername(""); // Pusty username
+        registerRequest.setEmail("invalid-email");
+        registerRequest.setPassword("123"); // Za krótkie hasło
+        registerRequest.setFirstName("");
+        registerRequest.setLastName("");
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(
+                BASE_URL + "/register",
+                registerRequest,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void testRegisterWithNullData() {
+        RegisterRequest registerRequest = new RegisterRequest();
+        // Wszystkie pola null
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(
+                BASE_URL + "/register",
+                registerRequest,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void testLoginWithEmptyCredentials() {
+        AuthRequest authRequest = new AuthRequest();
+        authRequest.setUsername("");
+        authRequest.setPassword("");
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(
+                BASE_URL + "/login",
+                authRequest,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void testLoginWithNullCredentials() {
+        AuthRequest authRequest = new AuthRequest();
+        // username i password pozostają null
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(
+                BASE_URL + "/login",
+                authRequest,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
 }
