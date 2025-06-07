@@ -111,16 +111,7 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         return convertToPageResponse(page);
     }
 
-    @Override
-    public List<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea) {
-        return mieszkanieRepository.findByAreaRange(minArea, maxArea);
-    }
 
-    @Override
-    public PageResponse<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea, Pageable pageable) {
-        Page<Mieszkanie> page = mieszkanieRepository.findByAreaBetween(minArea, maxArea, pageable);
-        return convertToPageResponse(page);
-    }
 
     @Override
     public List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria) {
@@ -211,10 +202,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         return mieszkanieRepository.findAllDevelopers();
     }
 
-    @Override
-    public List<String> getInvestmentsByDeveloper(String developer) {
-        return mieszkanieRepository.findInvestmentsByDeveloper(developer);
-    }
 
     @Override
     public Mieszkanie changeStatus(Integer id, Mieszkanie.Status status) {

@@ -15,7 +15,6 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
     List<Mieszkanie> findByDeveloper(String developer);
     List<Mieszkanie> findByInvestment(String investment);
     List<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
-    List<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea);
     List<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria);
 
 
@@ -23,12 +22,10 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
     PageResponse<Mieszkanie> findByDeveloper(String developer, Pageable pageable);
     PageResponse<Mieszkanie> findByInvestment(String investment, Pageable pageable);
     PageResponse<Mieszkanie> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
-    PageResponse<Mieszkanie> findByAreaRange(BigDecimal minArea, BigDecimal maxArea, Pageable pageable);
     PageResponse<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria, Pageable pageable);
 
 
     List<String> getAllDevelopers();
-    List<String> getInvestmentsByDeveloper(String developer);
     Mieszkanie changeStatus(Integer id, Mieszkanie.Status newStatus);
     Mieszkanie updateFromDTO(Integer id, UpdateMieszkanieDTO dto);
 }
