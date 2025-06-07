@@ -277,8 +277,7 @@ class MieszkanieControllerTest {
     @WithMockUser(roles = "USER")
     void getByInvestment_ShouldReturnMieszkaniaByInvestment() throws Exception {
         // Given
-        when(searchContext.executeSearch(
-                eq(SearchStrategy.SearchType.SIMPLE),
+        when(searchContext.executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class))).thenReturn(pageResponse);
 
@@ -290,8 +289,7 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.content[0].id", is(1)))
                 .andExpect(jsonPath("$.content[0].investment", is("Test Investment")));
 
-        verify(searchContext, times(1)).executeSearch(
-                eq(SearchStrategy.SearchType.SIMPLE),
+        verify(searchContext, times(1)).executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
@@ -300,8 +298,7 @@ class MieszkanieControllerTest {
     @WithMockUser(roles = "USER")
     void getByPriceRange_ShouldReturnMieszkaniaByPriceRange() throws Exception {
         // Given
-        when(searchContext.executeSearch(
-                eq(SearchStrategy.SearchType.ADVANCED),
+        when(searchContext.executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class))).thenReturn(pageResponse);
 
@@ -315,8 +312,7 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.content[0].id", is(1)))
                 .andExpect(jsonPath("$.content[0].price", is(500000)));
 
-        verify(searchContext, times(1)).executeSearch(
-                eq(SearchStrategy.SearchType.ADVANCED),
+        verify(searchContext, times(1)).executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
@@ -331,8 +327,7 @@ class MieszkanieControllerTest {
                 .maxPrice(BigDecimal.valueOf(600000))
                 .build();
 
-        when(searchContext.executeSearch(
-                any(SearchStrategy.SearchType.class),
+        when(searchContext.executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class))).thenReturn(pageResponse);
 
@@ -346,8 +341,7 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.content[0].id", is(1)))
                 .andExpect(jsonPath("$.content[0].city", is("Test City")));
 
-        verify(searchContext, times(1)).executeSearch(
-                any(SearchStrategy.SearchType.class),
+        verify(searchContext, times(1)).executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
@@ -362,8 +356,7 @@ class MieszkanieControllerTest {
                 .voivodeship("Test Voivodeship")
                 .build();
 
-        when(searchContext.executeSearch(
-                eq(SearchStrategy.SearchType.BY_LOCATION),
+        when(searchContext.executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class))).thenReturn(pageResponse);
 
@@ -376,8 +369,7 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].id", is(1)));
 
-        verify(searchContext, times(1)).executeSearch(
-                eq(SearchStrategy.SearchType.BY_LOCATION),
+        verify(searchContext, times(1)).executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
@@ -391,8 +383,7 @@ class MieszkanieControllerTest {
                 .minPrice(BigDecimal.valueOf(400000))  // This makes it use ADVANCED strategy
                 .build();
 
-        when(searchContext.executeSearch(
-                eq(SearchStrategy.SearchType.ADVANCED),
+        when(searchContext.executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class))).thenReturn(pageResponse);
 
@@ -405,8 +396,7 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].id", is(1)));
 
-        verify(searchContext, times(1)).executeSearch(
-                eq(SearchStrategy.SearchType.ADVANCED),
+        verify(searchContext, times(1)).executeAutoSearch(
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
