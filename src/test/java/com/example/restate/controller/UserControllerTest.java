@@ -87,10 +87,10 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getAllUsers_ShouldReturnAllUsers() throws Exception {
-        // Given
+
         when(userService.findAll()).thenReturn(userList);
 
-        // When & Then
+
         mockMvc.perform(get("/api/users")
                         .with(csrf()))
                 .andExpect(status().isOk())
@@ -106,10 +106,9 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getUserById_WhenUserExists_ShouldReturnUser() throws Exception {
-        // Given
+
         when(userService.findById(1L)).thenReturn(Optional.of(user));
 
-        // When & Then
         mockMvc.perform(get("/api/users/1")
                         .with(csrf()))
                 .andExpect(status().isOk())
@@ -192,10 +191,9 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void deleteUser_ShouldDeleteUser() throws Exception {
-        // Given
-        doNothing().when(userService).deleteById(1L);
 
-        // When & Then
+        doNothing().when(userService).deleteById(1L);
+        
         mockMvc.perform(delete("/api/users/1")
                         .with(csrf()))
                 .andExpect(status().isNoContent());
@@ -239,10 +237,10 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "testuser", roles = "USER")
     void getCurrentUser_WhenUserExists_ShouldReturnUserProfile() throws Exception {
-        // Given
+
         when(userService.findByUsername("testuser")).thenReturn(Optional.of(user));
 
-        // When & Then
+
         mockMvc.perform(get("/api/users/profile")
                         .with(csrf()))
                 .andExpect(status().isOk())
@@ -260,7 +258,6 @@ class UserControllerTest {
         // Given
         when(userService.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
-        // When & Then
         mockMvc.perform(get("/api/users/profile")
                         .with(csrf()))
                 .andExpect(status().isNotFound());

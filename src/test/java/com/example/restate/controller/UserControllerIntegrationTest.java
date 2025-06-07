@@ -1,10 +1,7 @@
 package com.example.restate.controller;
 
 import com.example.restate.config.IntegrationTestConfig;
-import com.example.restate.dto.AuthRequest;
-import com.example.restate.dto.AuthResponse;
-import com.example.restate.dto.UpdateUserDTO;
-import com.example.restate.dto.UserProfileDTO;
+import com.example.restate.dto.*;
 import com.example.restate.entity.Role;
 import com.example.restate.entity.User;
 import com.example.restate.repository.UserRepository;
@@ -22,9 +19,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Integration tests for the UserController using a real PostgreSQL database in a Docker container.
- */
+
 public class UserControllerIntegrationTest extends IntegrationTestConfig {
 
     @Autowired
@@ -54,10 +49,10 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
 
     @BeforeEach
     void setUp() {
-        // Clean up the database
+
         userRepository.deleteAll();
 
-        // Create admin user
+
         adminUser = new User();
         adminUser.setUsername(ADMIN_USERNAME);
         adminUser.setEmail(ADMIN_EMAIL);
@@ -67,7 +62,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         adminUser.setRole(Role.ADMIN);
         userRepository.save(adminUser);
 
-        // Create regular user
+
         regularUser = new User();
         regularUser.setUsername(USER_USERNAME);
         regularUser.setEmail(USER_EMAIL);
@@ -77,7 +72,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         regularUser.setRole(Role.USER);
         userRepository.save(regularUser);
 
-        // Login as admin and get token
+
         AuthRequest adminAuthRequest = new AuthRequest();
         adminAuthRequest.setUsername(ADMIN_USERNAME);
         adminAuthRequest.setPassword(ADMIN_PASSWORD);
@@ -115,7 +110,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
 
     @AfterEach
     void tearDown() {
-        // Clean up the database
+
         userRepository.deleteAll();
     }
 
@@ -174,7 +169,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         System.out.println("[DEBUG_LOG] Response status: " + errorResponse.getStatusCode());
         System.out.println("[DEBUG_LOG] Response body: " + errorResponse.getBody());
 
-        // Try again with the correct response type
+
         ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
                 BASE_URL + "/me",
                 HttpMethod.PUT,
@@ -182,7 +177,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
                 UserProfileDTO.class
         );
 
-        // Then
+
         System.out.println("[DEBUG_LOG] Final response status: " + response.getStatusCode());
         System.out.println("[DEBUG_LOG] Final response body: " + response.getBody());
 
@@ -194,7 +189,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         assertEquals("Name", response.getBody().getLastName());
         assertEquals("ROLE_" + Role.USER.name(), response.getBody().getRole());
 
-        // Verify changes in database
+
         User updatedUser = userRepository.findByUsername(USER_USERNAME).orElseThrow();
         assertEquals("Updated", updatedUser.getFirstName());
         assertEquals("Name", updatedUser.getLastName());
@@ -239,7 +234,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         // Given
         HttpEntity<Void> requestEntity = new HttpEntity<>(userHeaders);
 
-        // When
+
         ResponseEntity<Object> response = restTemplate.exchange(
                 BASE_URL,
                 HttpMethod.GET,
@@ -256,7 +251,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         // Given
         HttpEntity<Void> requestEntity = new HttpEntity<>(adminHeaders);
 
-        // When
+
         ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
                 BASE_URL + "/" + regularUser.getId(),
                 HttpMethod.GET,
@@ -264,7 +259,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
                 UserProfileDTO.class
         );
 
-        // Then
+
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(USER_USERNAME, response.getBody().getUsername());
@@ -276,7 +271,7 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
         // Given
         HttpEntity<Void> requestEntity = new HttpEntity<>(userHeaders);
 
-        // When
+
         ResponseEntity<Object> response = restTemplate.exchange(
                 BASE_URL + "/" + adminUser.getId(),
                 HttpMethod.GET,
@@ -284,7 +279,145 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
                 Object.class
         );
 
-        // Then
+
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void testDeleteUser_AsAdmin() {
+        HttpEntity<Void> requestEntity = new HttpEntity<>(adminHeaders);
+        
+        ResponseEntity<Void> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.DELETE,
+                requestEntity,
+                Void.class
+        );
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertFalse(userRepository.existsById(regularUser.getId()));
+    }
+
+    @Test
+    void testDeleteUser_AsUser_ShouldBeForbidden() {
+        HttpEntity<Void> requestEntity = new HttpEntity<>(userHeaders);
+        
+        ResponseEntity<Void> response = restTemplate.exchange(
+                BASE_URL + "/" + adminUser.getId(),
+                HttpMethod.DELETE,
+                requestEntity,
+                Void.class
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void testUpdateUser_AsAdmin() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        updateDTO.setFirstName("Updated");
+        updateDTO.setLastName("Name");
+        updateDTO.setEmail("updated@example.com");
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+        
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Updated", response.getBody().getFirstName());
+        assertEquals("Name", response.getBody().getLastName());
+    }
+
+    @Test
+    void testCreateAdmin() {
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newadmin");
+        registerRequest.setEmail("newadmin@example.com");
+        registerRequest.setPassword("NewAdmin123!");
+        registerRequest.setFirstName("New");
+        registerRequest.setLastName("Admin");
+
+        HttpEntity<RegisterRequest> requestEntity = new HttpEntity<>(registerRequest, adminHeaders);
+        
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/admin",
+                HttpMethod.POST,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("newadmin", response.getBody().getUsername());
+        
+
+        User newAdmin = userRepository.findByUsername("newadmin").orElse(null);
+        assertNotNull(newAdmin);
+        assertEquals(Role.ADMIN, newAdmin.getRole());
+    }
+
+    @Test
+    void testGetCurrentUserProfile() {
+        HttpEntity<Void> requestEntity = new HttpEntity<>(userHeaders);
+        
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/profile",
+                HttpMethod.GET,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(USER_USERNAME, response.getBody().getUsername());
+    }
+
+    @Test
+    void testGetCurrentUserMe() {
+        HttpEntity<Void> requestEntity = new HttpEntity<>(userHeaders);
+        
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/me",
+                HttpMethod.GET,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(USER_USERNAME, response.getBody().getUsername());
+    }
+
+    @Test
+    void testUpdateNonExistentUser_AsAdmin() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        updateDTO.setFirstName("Updated");
+        
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+        
+        ResponseEntity<Object> response = restTemplate.exchange(
+                BASE_URL + "/999999",
+                HttpMethod.PUT,
+                requestEntity,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void testGetNonExistentUser_AsAdmin() {
+        HttpEntity<Void> requestEntity = new HttpEntity<>(adminHeaders);
+        
+        ResponseEntity<Object> response = restTemplate.exchange(
+                BASE_URL + "/999999",
+                HttpMethod.GET,
+                requestEntity,
+                Object.class
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 }

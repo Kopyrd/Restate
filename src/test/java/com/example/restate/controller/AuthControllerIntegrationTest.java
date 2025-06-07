@@ -163,15 +163,87 @@ public class AuthControllerIntegrationTest extends IntegrationTestConfig {
         authRequest.setUsername(TEST_USERNAME);
         authRequest.setPassword("WrongPassword123!");
 
-        // When
+
         ResponseEntity<Object> response = restTemplate.postForEntity(
                 BASE_URL + "/login",
                 authRequest,
                 Object.class
         );
 
-        // Then
-        // The AuthController returns BAD_REQUEST (400) for invalid credentials, not UNAUTHORIZED (401)
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void testRegisterWithExistingUsername() {
+        // Utwórz użytkownika
+        User existingUser = new User();
+        existingUser.setUsername(TEST_USERNAME);
+        existingUser.setEmail("different@example.com");
+        existingUser.setPassword(passwordEncoder.encode(TEST_PASSWORD));
+        existingUser.setFirstName("Existing");
+        existingUser.setLastName("User");
+        existingUser.setRole(Role.USER);
+        userRepository.save(existingUser);
+
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername(TEST_USERNAME); // Ten sam username
+        registerRequest.setEmail("new@example.com");
+        registerRequest.setPassword(TEST_PASSWORD);
+        registerRequest.setFirstName("New");
+        registerRequest.setLastName("User");
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/register",
+                registerRequest,
+                String.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(response.getBody().contains("Username already exists"));
+    }
+
+    @Test
+    void testRegisterWithExistingEmail() {
+        // Podobny test dla istniejącego emaila
+        User existingUser = new User();
+        existingUser.setUsername("different");
+        existingUser.setEmail(TEST_EMAIL);
+        existingUser.setPassword(passwordEncoder.encode(TEST_PASSWORD));
+        existingUser.setFirstName("Existing");
+        existingUser.setLastName("User");
+        existingUser.setRole(Role.USER);
+        userRepository.save(existingUser);
+
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newuser");
+        registerRequest.setEmail(TEST_EMAIL); // Ten sam email
+        registerRequest.setPassword(TEST_PASSWORD);
+        registerRequest.setFirstName("New");
+        registerRequest.setLastName("User");
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/register",
+                registerRequest,
+                String.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(response.getBody().contains("Email already exists"));
+    }
+
+    @Test
+    void testLoginWithNonExistentUser() {
+        AuthRequest authRequest = new AuthRequest();
+        authRequest.setUsername("nonexistent");
+        authRequest.setPassword("password");
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(
+                BASE_URL + "/login",
+                authRequest,
+                Object.class
+        );
+
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 }
