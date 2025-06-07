@@ -25,7 +25,6 @@ public interface MieszkanieService extends BaseService<Mieszkanie, Integer> {
     PageResponse<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria, Pageable pageable);
 
 
-    List<String> getAllDevelopers();
     Mieszkanie changeStatus(Integer id, Mieszkanie.Status newStatus);
     Mieszkanie updateFromDTO(Integer id, UpdateMieszkanieDTO dto);
 }

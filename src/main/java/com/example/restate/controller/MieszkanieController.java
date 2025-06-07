@@ -88,6 +88,27 @@ public class MieszkanieController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/developer/{developer}")
+    @Operation(summary = "Get apartments by developer")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public ResponseEntity<PageResponse<MieszkanieDTO>> getByDeveloper(
+            @PathVariable String developer,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer(developer)
+                .build();
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<Mieszkanie> mieszkaniePageResponse = searchContext.executeAutoSearch(criteria, pageable);
+        return ResponseEntity.ok(convertToPageResponseDTO(mieszkaniePageResponse));
+    }
+
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -113,16 +134,16 @@ public class MieszkanieController {
     @Operation(summary = "Get apartments by price range")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<PageResponse<MieszkanieDTO>> getByPriceRange(
-            @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice,
+            @RequestParam BigDecimal min,
+            @RequestParam BigDecimal max,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
         MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
+                .minPrice(min)
+                .maxPrice(max)
                 .build();
 
         Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;

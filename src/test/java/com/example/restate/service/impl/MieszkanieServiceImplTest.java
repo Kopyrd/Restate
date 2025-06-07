@@ -434,21 +434,6 @@ class MieszkanieServiceImplTest {
         verify(mieszkanieRepository, never()).save(any(Mieszkanie.class));
     }
 
-    @Test
-    void getAllDevelopers_ShouldReturnAllDevelopers() {
-        // Given
-        List<String> developers = Arrays.asList("Test Developer", "Another Developer");
-        when(mieszkanieRepository.findAllDevelopers()).thenReturn(developers);
-
-        // When
-        List<String> result = mieszkanieService.getAllDevelopers();
-
-        // Then
-        assertEquals(2, result.size());
-        assertEquals("Test Developer", result.get(0));
-        assertEquals("Another Developer", result.get(1));
-        verify(mieszkanieRepository, times(1)).findAllDevelopers();
-    }
 
     @Test
     void searchByCriteria_ShouldReturnMieszkaniaByCriteria() {
@@ -584,7 +569,7 @@ class MieszkanieServiceImplTest {
         verify(root).get("developer");
 
         // Verify that the correct predicates were created
-        verify(criteriaBuilder).equal(any(), eq("Developer1"));
+        verify(criteriaBuilder, times(2)).equal(any(), eq("Developer1"));
     }
 
     @Test
@@ -650,10 +635,10 @@ class MieszkanieServiceImplTest {
         verify(root, times(2)).get("area"); // Once for minArea and once for maxArea
 
         // Verify that the correct predicates were created
-        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("200000")));
-        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("500000")));
-        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("50.0")));
-        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("100.0")));
+        verify(criteriaBuilder, times(2)).greaterThanOrEqualTo(any(), eq(new BigDecimal("200000")));
+        verify(criteriaBuilder, times(2)).lessThanOrEqualTo(any(), eq(new BigDecimal("500000")));
+        verify(criteriaBuilder, times(2)).greaterThanOrEqualTo(any(), eq(new BigDecimal("50.0")));
+        verify(criteriaBuilder, times(2)).lessThanOrEqualTo(any(), eq(new BigDecimal("100.0")));
     }
 
     @Test
@@ -715,8 +700,8 @@ class MieszkanieServiceImplTest {
         verify(root).get("investment");
 
         // Verify that the correct predicates were created
-        verify(criteriaBuilder).equal(any(), eq("Developer2"));
-        verify(criteriaBuilder).equal(any(), eq("Investment2"));
+        verify(criteriaBuilder, times(2)).equal(any(), eq("Developer2"));
+        verify(criteriaBuilder, times(2)).equal(any(), eq("Investment2"));
     }
 
     @Test

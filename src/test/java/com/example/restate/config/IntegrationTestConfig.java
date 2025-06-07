@@ -63,7 +63,7 @@ public abstract class IntegrationTestConfig {
         registry.add("spring.datasource.hikari.minimum-idle", () -> "5");
         registry.add("spring.datasource.hikari.connection-timeout", () -> "30000");
         registry.add("spring.datasource.hikari.idle-timeout", () -> "600000");
-        registry.add("spring.datasource.hikari.max-lifetime", () -> "1800000");
+        registry.add("spring.datasource.hikari.max-lifetime", () -> "600000");
         registry.add("spring.datasource.hikari.auto-commit", () -> "true");
 
         System.out.println("[DEBUG_LOG] Test context initialized");

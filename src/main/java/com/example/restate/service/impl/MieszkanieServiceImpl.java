@@ -18,6 +18,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.math.BigDecimal;
@@ -59,13 +60,18 @@ public class MieszkanieServiceImpl implements MieszkanieService {
         Mieszkanie existing = mieszkanieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mieszkanie not found with id: " + id));
 
-        existing.setDeveloper(mieszkanie.getDeveloper());
-        existing.setInvestment(mieszkanie.getInvestment());
-        existing.setNumber(mieszkanie.getNumber());
-        existing.setArea(mieszkanie.getArea());
-        existing.setPrice(mieszkanie.getPrice());
-        existing.setStatus(mieszkanie.getStatus());
-        existing.setDescription(mieszkanie.getDescription());
+        // Only update fields that are not null
+        if (mieszkanie.getDeveloper() != null) existing.setDeveloper(mieszkanie.getDeveloper());
+        if (mieszkanie.getInvestment() != null) existing.setInvestment(mieszkanie.getInvestment());
+        if (mieszkanie.getNumber() != null) existing.setNumber(mieszkanie.getNumber());
+        if (mieszkanie.getArea() != null) existing.setArea(mieszkanie.getArea());
+        if (mieszkanie.getPrice() != null) existing.setPrice(mieszkanie.getPrice());
+        if (mieszkanie.getStatus() != null) existing.setStatus(mieszkanie.getStatus());
+        if (mieszkanie.getDescription() != null) existing.setDescription(mieszkanie.getDescription());
+        if (mieszkanie.getVoivodeship() != null) existing.setVoivodeship(mieszkanie.getVoivodeship());
+        if (mieszkanie.getCity() != null) existing.setCity(mieszkanie.getCity());
+        if (mieszkanie.getDistrict() != null) existing.setDistrict(mieszkanie.getDistrict());
+        if (mieszkanie.getFloor() != null) existing.setFloor(mieszkanie.getFloor());
 
         return mieszkanieRepository.save(existing);
     }
@@ -128,18 +134,88 @@ public class MieszkanieServiceImpl implements MieszkanieService {
     @Override
     public PageResponse<Mieszkanie> searchByCriteria(MieszkanieSearchCriteria criteria, Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        // Main query with fetch join for data retrieval
         CriteriaQuery<Mieszkanie> query = cb.createQuery(Mieszkanie.class);
         Root<Mieszkanie> mieszkanie = query.from(Mieszkanie.class);
 
-        List<Predicate> predicates = buildPredicatesFromCriteria(cb, mieszkanie, criteria);
+        // Add a left join for the createdBy relationship to avoid LazyInitializationException
+        // But don't use fetch join in the main query to avoid pagination issues
+        mieszkanie.join("createdBy", JoinType.LEFT);
+
+        // Create a list of conditions based on criteria
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (criteria.getDeveloper() != null && !criteria.getDeveloper().isEmpty()) {
+            predicates.add(cb.equal(mieszkanie.get("developer"), criteria.getDeveloper()));
+        }
+
+        if (criteria.getInvestment() != null && !criteria.getInvestment().isEmpty()) {
+            predicates.add(cb.equal(mieszkanie.get("investment"), criteria.getInvestment()));
+        }
+
+        if (criteria.getMinPrice() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(mieszkanie.get("price"), criteria.getMinPrice()));
+        }
+
+        if (criteria.getMaxPrice() != null) {
+            predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("price"), criteria.getMaxPrice()));
+        }
+
+        if (criteria.getMinArea() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(mieszkanie.get("area"), criteria.getMinArea()));
+        }
+
+        if (criteria.getMaxArea() != null) {
+            predicates.add(cb.lessThanOrEqualTo(mieszkanie.get("area"), criteria.getMaxArea()));
+        }
 
         query.where(predicates.toArray(new Predicate[0]));
 
-        // Count total results
+        // Apply sorting
+        if (pageable.getSort().isSorted()) {
+            pageable.getSort().forEach(order -> {
+                if (order.isAscending()) {
+                    query.orderBy(cb.asc(mieszkanie.get(order.getProperty())));
+                } else {
+                    query.orderBy(cb.desc(mieszkanie.get(order.getProperty())));
+                }
+            });
+        }
+
+        // Separate count query without fetch joins
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<Mieszkanie> countRoot = countQuery.from(Mieszkanie.class);
+
+        // Create the same predicates for the count query
+        List<Predicate> countPredicates = new ArrayList<>();
+
+        if (criteria.getDeveloper() != null && !criteria.getDeveloper().isEmpty()) {
+            countPredicates.add(cb.equal(countRoot.get("developer"), criteria.getDeveloper()));
+        }
+
+        if (criteria.getInvestment() != null && !criteria.getInvestment().isEmpty()) {
+            countPredicates.add(cb.equal(countRoot.get("investment"), criteria.getInvestment()));
+        }
+
+        if (criteria.getMinPrice() != null) {
+            countPredicates.add(cb.greaterThanOrEqualTo(countRoot.get("price"), criteria.getMinPrice()));
+        }
+
+        if (criteria.getMaxPrice() != null) {
+            countPredicates.add(cb.lessThanOrEqualTo(countRoot.get("price"), criteria.getMaxPrice()));
+        }
+
+        if (criteria.getMinArea() != null) {
+            countPredicates.add(cb.greaterThanOrEqualTo(countRoot.get("area"), criteria.getMinArea()));
+        }
+
+        if (criteria.getMaxArea() != null) {
+            countPredicates.add(cb.lessThanOrEqualTo(countRoot.get("area"), criteria.getMaxArea()));
+        }
+
         countQuery.select(cb.count(countRoot));
-        countQuery.where(predicates.toArray(new Predicate[0]));
+        countQuery.where(countPredicates.toArray(new Predicate[0]));
         Long totalElements = entityManager.createQuery(countQuery).getSingleResult();
 
         // Apply pagination
@@ -197,10 +273,6 @@ public class MieszkanieServiceImpl implements MieszkanieService {
                 .build();
     }
 
-    @Override
-    public List<String> getAllDevelopers() {
-        return mieszkanieRepository.findAllDevelopers();
-    }
 
 
     @Override

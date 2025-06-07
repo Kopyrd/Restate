@@ -170,8 +170,7 @@ public class AuthControllerIntegrationTest extends IntegrationTestConfig {
                 Object.class
         );
 
-        // Then
-        // The AuthController returns BAD_REQUEST (400) for invalid credentials, not UNAUTHORIZED (401)
+
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 }

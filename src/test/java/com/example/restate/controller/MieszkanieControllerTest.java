@@ -304,8 +304,8 @@ class MieszkanieControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/mieszkania/price-range")
-                        .param("minPrice", "400000")
-                        .param("maxPrice", "600000")
+                        .param("min", "400000")
+                        .param("max", "600000")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(1)))

@@ -52,11 +52,11 @@ class GlobalExceptionHandlerTest {
         // Given
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
-        
+
         List<FieldError> fieldErrors = new ArrayList<>();
         fieldErrors.add(new FieldError("object", "field1", "Field1 error"));
         fieldErrors.add(new FieldError("object", "field2", "Field2 error"));
-        
+
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getAllErrors()).thenReturn(new ArrayList<>(fieldErrors));
 
@@ -67,7 +67,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Validation Failed", response.getBody().getError());
         assertEquals("Invalid input parameters", response.getBody().getMessage());
-        
+
         Map<String, String> validationErrors = response.getBody().getValidationErrors();
         assertNotNull(validationErrors);
         assertEquals(2, validationErrors.size());
@@ -121,7 +121,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleAuthenticationException_ShouldReturnUnauthorizedStatus() {
+    void handleAuthenticationException_ShouldReturnBadRequestStatus() {
         // Given
         AuthenticationException ex = mock(AuthenticationException.class);
         when(ex.getMessage()).thenReturn("Authentication failed");
@@ -130,13 +130,13 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleAuthenticationException(ex);
 
         // Then
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Authentication Failed", response.getBody().getError());
         assertEquals("Authentication failed", response.getBody().getMessage());
     }
 
     @Test
-    void handleBadCredentialsException_ShouldReturnUnauthorizedStatus() {
+    void handleBadCredentialsException_ShouldReturnBadRequestStatus() {
         // Given
         BadCredentialsException ex = new BadCredentialsException("Bad credentials");
 
@@ -144,13 +144,13 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleBadCredentialsException(ex);
 
         // Then
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Authentication Failed", response.getBody().getError());
         assertEquals("Invalid username or password", response.getBody().getMessage());
     }
 
     @Test
-    void handleCustomAuthenticationException_ShouldReturnUnauthorizedStatus() {
+    void handleCustomAuthenticationException_ShouldReturnBadRequestStatus() {
         // Given
         com.example.restate.exception.AuthenticationException ex = 
             new com.example.restate.exception.AuthenticationException("Custom auth error");
@@ -159,7 +159,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleCustomAuthenticationException(ex);
 
         // Then
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Authentication Failed", response.getBody().getError());
         assertEquals("Custom auth error", response.getBody().getMessage());
     }

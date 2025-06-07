@@ -38,7 +38,4 @@ public interface MieszkanieRepository extends JpaRepository<Mieszkanie, Integer>
 
 
 
-    @Query("SELECT DISTINCT m.developer FROM Mieszkanie m")
-    List<String> findAllDevelopers();
-
 }
