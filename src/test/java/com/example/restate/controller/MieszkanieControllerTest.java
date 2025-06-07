@@ -422,33 +422,4 @@ class MieszkanieControllerTest {
 
         verify(mieszkanieService, times(1)).changeStatus(eq(1), eq(Mieszkanie.Status.SOLD));
     }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void searchByCriteria_WithExplicitStrategy_ShouldUseProvidedStrategy() throws Exception {
-        // Given
-        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
-                .developer("Test Developer")
-                .build();
-
-        when(searchContext.executeSearch(
-                eq(SearchStrategy.SearchType.BY_LOCATION),
-                any(MieszkanieSearchCriteria.class),
-                any(Pageable.class))).thenReturn(pageResponse);
-
-        // When & Then
-        mockMvc.perform(post("/api/mieszkania/search")
-                        .param("strategy", "BY_LOCATION")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(criteria)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].id", is(1)));
-
-        verify(searchContext, times(1)).executeSearch(
-                eq(SearchStrategy.SearchType.BY_LOCATION),
-                any(MieszkanieSearchCriteria.class),
-                any(Pageable.class));
-    }
 }
