@@ -102,7 +102,11 @@ public class MieszkanieController {
                 .investment(investment)
                 .build();
 
-        return executeStrategySearch(SearchStrategy.SearchType.SIMPLE, criteria, page, size, sortBy, sortDir);
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<Mieszkanie> mieszkaniePageResponse = searchContext.executeAutoSearch(criteria, pageable);
+        return ResponseEntity.ok(convertToPageResponseDTO(mieszkaniePageResponse));
     }
 
     @GetMapping("/price-range")
@@ -121,7 +125,11 @@ public class MieszkanieController {
                 .maxPrice(maxPrice)
                 .build();
 
-        return executeStrategySearch(SearchStrategy.SearchType.ADVANCED, criteria, page, size, sortBy, sortDir);
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<Mieszkanie> mieszkaniePageResponse = searchContext.executeAutoSearch(criteria, pageable);
+        return ResponseEntity.ok(convertToPageResponseDTO(mieszkaniePageResponse));
     }
 
     @PostMapping("/search")
@@ -132,54 +140,15 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir,
-            @RequestParam(required = false) String strategy) {
+            @RequestParam(defaultValue = "asc") String sortDir) {
 
-        SearchStrategy.SearchType searchType;
-        if (strategy != null && !strategy.isEmpty()) {
-            try {
-                searchType = SearchStrategy.SearchType.valueOf(strategy.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                searchType = determineStrategy(criteria);
-            }
-        } else {
-            searchType = determineStrategy(criteria);
-        }
-        return executeStrategySearch(searchType, criteria, page, size, sortBy, sortDir);
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<Mieszkanie> mieszkaniePageResponse = searchContext.executeAutoSearch(criteria, pageable);
+        return ResponseEntity.ok(convertToPageResponseDTO(mieszkaniePageResponse));
     }
 
-    private SearchStrategy.SearchType determineStrategy(MieszkanieSearchCriteria criteria) {
-        if (hasLocationCriteria(criteria) && !hasOtherCriteria(criteria)) {
-            return SearchStrategy.SearchType.BY_LOCATION;
-        }
-
-        if (hasAdvancedCriteria(criteria)) {
-            return SearchStrategy.SearchType.ADVANCED;
-        }
-
-        return SearchStrategy.SearchType.SIMPLE;
-    }
-
-    private boolean hasLocationCriteria(MieszkanieSearchCriteria criteria) {
-        return criteria.getCity() != null || 
-           criteria.getVoivodeship() != null || 
-           criteria.getDistrict() != null;
-    }
-
-    private boolean hasAdvancedCriteria(MieszkanieSearchCriteria criteria) {
-        return criteria.getFloor() != null ||
-               criteria.getMinPrice() != null || 
-               criteria.getMaxPrice() != null ||
-               criteria.getMinArea() != null || 
-               criteria.getMaxArea() != null ||
-               criteria.getStatus() != null;
-    }
-
-    private boolean hasOtherCriteria(MieszkanieSearchCriteria criteria) {
-        return criteria.getDeveloper() != null || 
-               criteria.getInvestment() != null ||
-               hasAdvancedCriteria(criteria);
-    }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
@@ -208,17 +177,6 @@ public class MieszkanieController {
         return mieszkanie;
     }
 
-    private ResponseEntity<PageResponse<MieszkanieDTO>> executeStrategySearch(
-            SearchStrategy.SearchType searchType,
-            MieszkanieSearchCriteria criteria,
-            int page, int size, String sortBy, String sortDir) {
-
-        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        PageResponse<Mieszkanie> mieszkaniePageResponse = searchContext.executeSearch(searchType, criteria, pageable);
-        return ResponseEntity.ok(convertToPageResponseDTO(mieszkaniePageResponse));
-    }
 
     private PageResponse<MieszkanieDTO> convertToPageResponseDTO(PageResponse<Mieszkanie> pageResponse) {
         List<MieszkanieDTO> dtos = pageResponse.getContent().stream()

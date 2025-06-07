@@ -68,7 +68,6 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @Operation(summary = "Register a new user", description = "Creates a new user account with USER role")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         log.info("Registration attempt for username: {}", request.getUsername());

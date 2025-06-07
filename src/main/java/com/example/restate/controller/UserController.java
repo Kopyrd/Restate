@@ -90,4 +90,27 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @Operation(summary = "Get current user profile", description = "Available for all authenticated users")
+    public ResponseEntity<UserProfileDTO> getCurrentUserMe(Authentication authentication) {
+        return getCurrentUser(authentication);
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @Operation(summary = "Update current user profile", description = "Available for all authenticated users")
+    public ResponseEntity<UserProfileDTO> updateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody UpdateUserDTO updateUserDTO) {
+        String username = authentication.getName();
+        User existingUser = userService.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        User userToUpdate = updateUserDTO.toEntity(existingUser);
+        User updated = userService.update(existingUser.getId(), userToUpdate);
+
+        return ResponseEntity.ok(UserProfileDTO.fromEntity(updated));
+    }
 }
