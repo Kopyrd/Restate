@@ -238,6 +238,75 @@ class UserServiceImplTest {
     }
 
     @Test
+    void update_WithPartialFields_ShouldUpdateOnlyProvidedFields() {
+        // Given
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setUsername("existinguser");
+        existingUser.setEmail("existing@example.com");
+        existingUser.setPassword("encodedExistingPassword");
+        existingUser.setFirstName("Existing");
+        existingUser.setLastName("User");
+        existingUser.setRole(Role.USER);
+
+        User partialUpdate = new User();
+        // Only set email and firstName, leave other fields null
+        partialUpdate.setEmail("newemail@example.com");
+        partialUpdate.setFirstName("NewFirstName");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        User result = userService.update(1L, partialUpdate);
+
+        // Then
+        // Fields that were updated
+        assertEquals("newemail@example.com", result.getEmail());
+        assertEquals("NewFirstName", result.getFirstName());
+
+        // Fields that should remain unchanged
+        assertEquals("existinguser", result.getUsername());
+        assertEquals("encodedExistingPassword", result.getPassword());
+        assertEquals("User", result.getLastName());
+        assertEquals(Role.USER, result.getRole());
+
+        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).save(any(User.class));
+        // Password encoder should not be called since password was not updated
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void update_WithEmptyPassword_ShouldNotUpdatePassword() {
+        // Given
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setUsername("existinguser");
+        existingUser.setEmail("existing@example.com");
+        existingUser.setPassword("encodedExistingPassword");
+
+        User updateWithEmptyPassword = new User();
+        updateWithEmptyPassword.setUsername("newusername");
+        updateWithEmptyPassword.setPassword(""); // Empty password
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        User result = userService.update(1L, updateWithEmptyPassword);
+
+        // Then
+        assertEquals("newusername", result.getUsername());
+        assertEquals("encodedExistingPassword", result.getPassword()); // Password should not change
+
+        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).save(any(User.class));
+        // Password encoder should not be called
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
     void update_WhenUserDoesNotExist_ShouldThrowException() {
         // Given
         User updatedUser = new User();

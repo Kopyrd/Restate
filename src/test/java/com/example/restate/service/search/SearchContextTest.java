@@ -224,4 +224,327 @@ class SearchContextTest {
         verify(simpleSearchStrategy, never()).search(any(), any());
         verify(locationSearchStrategy, never()).search(any(), any());
     }
+
+    @Test
+    void executeAutoSearch_WithMixedLocationAndSimpleCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria mixedCriteria = MieszkanieSearchCriteria.builder()
+                .city("Test City")
+                .developer("Test Developer")
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(mixedCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(mixedCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithMixedLocationAndAdvancedCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria mixedCriteria = MieszkanieSearchCriteria.builder()
+                .city("Test City")
+                .minPrice(BigDecimal.valueOf(400000))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(mixedCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(mixedCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithMixedSimpleAndAdvancedCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria mixedCriteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer")
+                .minPrice(BigDecimal.valueOf(400000))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(mixedCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(mixedCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithAllTypesCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria allTypesCriteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer")
+                .city("Test City")
+                .minPrice(BigDecimal.valueOf(400000))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(allTypesCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(allTypesCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithEmptyCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria emptyCriteria = MieszkanieSearchCriteria.builder().build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(emptyCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(emptyCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyCityCriteria_ShouldUseLocationStrategy() {
+        // Given
+        MieszkanieSearchCriteria cityCriteria = MieszkanieSearchCriteria.builder()
+                .city("Test City")
+                .build();
+
+        when(locationSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(cityCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(locationSearchStrategy).search(cityCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(advancedSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyVoivodeshipCriteria_ShouldUseLocationStrategy() {
+        // Given
+        MieszkanieSearchCriteria voivodeshipCriteria = MieszkanieSearchCriteria.builder()
+                .voivodeship("Test Voivodeship")
+                .build();
+
+        when(locationSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(voivodeshipCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(locationSearchStrategy).search(voivodeshipCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(advancedSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyDistrictCriteria_ShouldUseLocationStrategy() {
+        // Given
+        MieszkanieSearchCriteria districtCriteria = MieszkanieSearchCriteria.builder()
+                .district("Test District")
+                .build();
+
+        when(locationSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(districtCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(locationSearchStrategy).search(districtCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(advancedSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyDeveloperCriteria_ShouldUseSimpleStrategy() {
+        // Given
+        MieszkanieSearchCriteria developerCriteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer")
+                .build();
+
+        when(simpleSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(developerCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(simpleSearchStrategy).search(developerCriteria, pageable);
+        verify(locationSearchStrategy, never()).search(any(), any());
+        verify(advancedSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyInvestmentCriteria_ShouldUseSimpleStrategy() {
+        // Given
+        MieszkanieSearchCriteria investmentCriteria = MieszkanieSearchCriteria.builder()
+                .investment("Test Investment")
+                .build();
+
+        when(simpleSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(investmentCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(simpleSearchStrategy).search(investmentCriteria, pageable);
+        verify(locationSearchStrategy, never()).search(any(), any());
+        verify(advancedSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyFloorCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria floorCriteria = MieszkanieSearchCriteria.builder()
+                .floor(2)
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(floorCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(floorCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyStatusCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria statusCriteria = MieszkanieSearchCriteria.builder()
+                .status("AVAILABLE")
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(statusCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(statusCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyMinPriceCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria minPriceCriteria = MieszkanieSearchCriteria.builder()
+                .minPrice(BigDecimal.valueOf(400000))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(minPriceCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(minPriceCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyMaxPriceCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria maxPriceCriteria = MieszkanieSearchCriteria.builder()
+                .maxPrice(BigDecimal.valueOf(600000))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(maxPriceCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(maxPriceCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyMinAreaCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria minAreaCriteria = MieszkanieSearchCriteria.builder()
+                .minArea(BigDecimal.valueOf(70))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(minAreaCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(minAreaCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
+
+    @Test
+    void executeAutoSearch_WithOnlyMaxAreaCriteria_ShouldUseAdvancedStrategy() {
+        // Given
+        MieszkanieSearchCriteria maxAreaCriteria = MieszkanieSearchCriteria.builder()
+                .maxArea(BigDecimal.valueOf(120))
+                .build();
+
+        when(advancedSearchStrategy.search(any(MieszkanieSearchCriteria.class), any(Pageable.class)))
+                .thenReturn(expectedResponse);
+
+        // When
+        PageResponse<Mieszkanie> result = searchContext.executeAutoSearch(maxAreaCriteria, pageable);
+
+        // Then
+        assertEquals(expectedResponse, result);
+        verify(advancedSearchStrategy).search(maxAreaCriteria, pageable);
+        verify(simpleSearchStrategy, never()).search(any(), any());
+        verify(locationSearchStrategy, never()).search(any(), any());
+    }
 }

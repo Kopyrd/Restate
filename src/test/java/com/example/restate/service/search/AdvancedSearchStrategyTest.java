@@ -341,6 +341,24 @@ class AdvancedSearchStrategyTest {
     }
 
     @Test
+    void search_WithoutSorting_ShouldNotApplySorting() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder().build();
+        pageable = PageRequest.of(0, 10); // No sorting specified
+
+        // When
+        PageResponse<Mieszkanie> result = advancedSearchStrategy.search(criteria, pageable);
+
+        // Then
+        // Verify that no sorting methods were called
+        verify(criteriaBuilder, never()).asc(any());
+        verify(criteriaBuilder, never()).desc(any());
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+    }
+
+    @Test
     void search_WithPagination_ShouldApplyPagination() {
         // Given
         MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder().build();
@@ -379,5 +397,58 @@ class AdvancedSearchStrategyTest {
         // Then
         assertFalse(result1);
         assertFalse(result2);
+    }
+
+    @Test
+    void search_WithAllTypesCriteria_ShouldCreateCorrectPredicates() {
+        // Given - criteria with simple, location, and advanced fields
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer") // Simple criteria
+                .investment("Test Investment") // Simple criteria
+                .city("Warsaw") // Location criteria
+                .voivodeship("Mazowieckie") // Location criteria
+                .district("Mokotow") // Location criteria
+                .minPrice(BigDecimal.valueOf(400000)) // Advanced criteria
+                .maxPrice(BigDecimal.valueOf(800000)) // Advanced criteria
+                .minArea(BigDecimal.valueOf(70)) // Advanced criteria
+                .maxArea(BigDecimal.valueOf(120)) // Advanced criteria
+                .floor(2) // Advanced criteria
+                .status("AVAILABLE") // Advanced criteria
+                .build();
+
+        // When
+        PageResponse<Mieszkanie> result = advancedSearchStrategy.search(criteria, pageable);
+
+        // Then
+        verify(criteriaQuery).where(predicatesCaptor.capture());
+        Predicate[] predicates = predicatesCaptor.getValue();
+        assertEquals(11, predicates.length); // All criteria should be used
+
+        // Verify all paths were accessed
+        verify(root, atLeastOnce()).get("developer");
+        verify(root, atLeastOnce()).get("investment");
+        verify(root, atLeastOnce()).get("city");
+        verify(root, atLeastOnce()).get("voivodeship");
+        verify(root, atLeastOnce()).get("district");
+        verify(root, atLeast(2)).get("price"); // Once for min, once for max
+        verify(root, atLeast(2)).get("area"); // Once for min, once for max
+        verify(root, atLeastOnce()).get("floor");
+        verify(root, atLeastOnce()).get("status");
+
+        // Verify all predicates were created
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Test Developer"));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Test Investment"));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Warsaw"));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Mazowieckie"));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Mokotow"));
+        verify(criteriaBuilder, atLeastOnce()).greaterThanOrEqualTo(any(), eq(BigDecimal.valueOf(400000)));
+        verify(criteriaBuilder, atLeastOnce()).lessThanOrEqualTo(any(), eq(BigDecimal.valueOf(800000)));
+        verify(criteriaBuilder, atLeastOnce()).greaterThanOrEqualTo(any(), eq(BigDecimal.valueOf(70)));
+        verify(criteriaBuilder, atLeastOnce()).lessThanOrEqualTo(any(), eq(BigDecimal.valueOf(120)));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq(2));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq(Mieszkanie.Status.AVAILABLE));
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
     }
 }

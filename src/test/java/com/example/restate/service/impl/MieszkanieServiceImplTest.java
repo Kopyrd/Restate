@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +41,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class MieszkanieServiceImplTest {
 
     @Mock
@@ -383,6 +386,43 @@ class MieszkanieServiceImplTest {
     }
 
     @Test
+    void updateFromDTO_WhenMieszkanieExistsWithAllFields_ShouldUpdateAllFieldsAndReturnMieszkanie() {
+        // Given
+        UpdateMieszkanieDTO dto = new UpdateMieszkanieDTO();
+        dto.setDeveloper("Updated Developer");
+        dto.setInvestment("Updated Investment");
+        dto.setNumber("Updated Number");
+        dto.setArea(BigDecimal.valueOf(80.0));
+        dto.setPrice(BigDecimal.valueOf(600000));
+        dto.setVoivodeship("Updated Voivodeship");
+        dto.setCity("Updated City");
+        dto.setDistrict("Updated District");
+        dto.setFloor(3);
+        dto.setDescription("Updated Description");
+
+        when(mieszkanieRepository.findById(1)).thenReturn(Optional.of(mieszkanie1));
+        when(mieszkanieRepository.save(any(Mieszkanie.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        Mieszkanie result = mieszkanieService.updateFromDTO(1, dto);
+
+        // Then
+        assertEquals("Updated Developer", result.getDeveloper());
+        assertEquals("Updated Investment", result.getInvestment());
+        assertEquals("Updated Number", result.getNumber());
+        assertEquals(BigDecimal.valueOf(80.0), result.getArea());
+        assertEquals(BigDecimal.valueOf(600000), result.getPrice());
+        assertEquals("Updated Voivodeship", result.getVoivodeship());
+        assertEquals("Updated City", result.getCity());
+        assertEquals("Updated District", result.getDistrict());
+        assertEquals(3, result.getFloor());
+        assertEquals("Updated Description", result.getDescription());
+
+        verify(mieszkanieRepository, times(1)).findById(1);
+        verify(mieszkanieRepository, times(1)).save(any(Mieszkanie.class));
+    }
+
+    @Test
     void updateFromDTO_WhenMieszkanieDoesNotExist_ShouldThrowException() {
         // Given
         UpdateMieszkanieDTO dto = new UpdateMieszkanieDTO();
@@ -408,5 +448,420 @@ class MieszkanieServiceImplTest {
         assertEquals("Test Developer", result.get(0));
         assertEquals("Another Developer", result.get(1));
         verify(mieszkanieRepository, times(1)).findAllDevelopers();
+    }
+
+    @Test
+    void searchByCriteria_ShouldReturnMieszkaniaByCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("Developer1")
+            .investment("Investment1")
+            .minPrice(new BigDecimal("200000"))
+            .maxPrice(new BigDecimal("500000"))
+            .minArea(new BigDecimal("50.0"))
+            .maxArea(new BigDecimal("100.0"))
+            .build();
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        // Mock predicates
+        Predicate predicate = mock(Predicate.class);
+        when(criteriaBuilder.equal(any(), any())).thenReturn(predicate);
+        when(criteriaBuilder.greaterThanOrEqualTo(any(), any(Comparable.class))).thenReturn(predicate);
+        when(criteriaBuilder.lessThanOrEqualTo(any(), any(Comparable.class))).thenReturn(predicate);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+        // Then
+        assertEquals(2, result.size());
+        assertEquals(mieszkanie1, result.get(0));
+        assertEquals(mieszkanie2, result.get(1));
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(typedQuery).getResultList();
+
+        // Verify that the correct paths were accessed
+        verify(root).get("developer");
+        verify(root).get("investment");
+        verify(root, times(2)).get("price"); // Called twice: once for minPrice and once for maxPrice
+        verify(root, times(2)).get("area"); // Called twice: once for minArea and once for maxArea
+
+        // Verify that the correct predicates were created
+        verify(criteriaBuilder).equal(any(), eq("Developer1"));
+        verify(criteriaBuilder).equal(any(), eq("Investment1"));
+        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("200000")));
+        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("500000")));
+        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("50.0")));
+        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("100.0")));
+    }
+
+    @Test
+    void searchByCriteria_WithEmptyCriteria_ShouldReturnAllMieszkania() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder().build();
+
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+        // Then
+        assertEquals(2, result.size());
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(typedQuery).getResultList();
+    }
+
+    @Test
+    void searchByCriteria_WithPageable_ShouldReturnPageOfMieszkaniaByCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("Developer1")
+            .build();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaBuilder.createQuery(Long.class)).thenReturn(countQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+        when(countQuery.from(Mieszkanie.class)).thenReturn(countRoot);
+        when(countQuery.select(any())).thenReturn(countQuery);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        // Mock predicates
+        Predicate predicate = mock(Predicate.class);
+        when(criteriaBuilder.equal(any(), any())).thenReturn(predicate);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(countQuery.where(any(Predicate[].class))).thenReturn(countQuery);
+
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(entityManager.createQuery(countQuery)).thenReturn(countTypedQuery);
+
+        when(countTypedQuery.getSingleResult()).thenReturn(2L);
+        when(typedQuery.setFirstResult(0)).thenReturn(typedQuery);
+        when(typedQuery.setMaxResults(10)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        PageResponse<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+        assertEquals(mieszkanie1, result.getContent().get(0));
+        assertEquals(mieszkanie2, result.getContent().get(1));
+        assertEquals(0, result.getPageNumber());
+        assertEquals(10, result.getPageSize());
+        assertEquals(2, result.getTotalElements());
+
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(entityManager).createQuery(countQuery);
+        verify(typedQuery).setFirstResult(0);
+        verify(typedQuery).setMaxResults(10);
+        verify(typedQuery).getResultList();
+        verify(countTypedQuery).getSingleResult();
+
+        // Verify that the correct paths were accessed
+        verify(root).get("developer");
+
+        // Verify that the correct predicates were created
+        verify(criteriaBuilder).equal(any(), eq("Developer1"));
+    }
+
+    @Test
+    void searchByCriteria_WithPriceAndAreaCriteria_ShouldReturnPageOfMieszkaniaByCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minPrice(new BigDecimal("200000"))
+            .maxPrice(new BigDecimal("500000"))
+            .minArea(new BigDecimal("50.0"))
+            .maxArea(new BigDecimal("100.0"))
+            .build();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaBuilder.createQuery(Long.class)).thenReturn(countQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+        when(countQuery.from(Mieszkanie.class)).thenReturn(countRoot);
+        when(countQuery.select(any())).thenReturn(countQuery);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        // Mock predicates
+        Predicate predicate = mock(Predicate.class);
+        when(criteriaBuilder.equal(any(), any())).thenReturn(predicate);
+        when(criteriaBuilder.greaterThanOrEqualTo(any(), any(Comparable.class))).thenReturn(predicate);
+        when(criteriaBuilder.lessThanOrEqualTo(any(), any(Comparable.class))).thenReturn(predicate);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(countQuery.where(any(Predicate[].class))).thenReturn(countQuery);
+
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(entityManager.createQuery(countQuery)).thenReturn(countTypedQuery);
+
+        when(countTypedQuery.getSingleResult()).thenReturn(2L);
+        when(typedQuery.setFirstResult(0)).thenReturn(typedQuery);
+        when(typedQuery.setMaxResults(10)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        PageResponse<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+        assertEquals(mieszkanie1, result.getContent().get(0));
+        assertEquals(mieszkanie2, result.getContent().get(1));
+        assertEquals(0, result.getPageNumber());
+        assertEquals(10, result.getPageSize());
+        assertEquals(2, result.getTotalElements());
+
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(entityManager).createQuery(countQuery);
+        verify(typedQuery).setFirstResult(0);
+        verify(typedQuery).setMaxResults(10);
+        verify(typedQuery).getResultList();
+        verify(countTypedQuery).getSingleResult();
+
+        // Verify that the correct paths were accessed
+        verify(root, times(2)).get("price"); // Once for minPrice and once for maxPrice
+        verify(root, times(2)).get("area"); // Once for minArea and once for maxArea
+
+        // Verify that the correct predicates were created
+        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("200000")));
+        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("500000")));
+        verify(criteriaBuilder).greaterThanOrEqualTo(any(), eq(new BigDecimal("50.0")));
+        verify(criteriaBuilder).lessThanOrEqualTo(any(), eq(new BigDecimal("100.0")));
+    }
+
+    @Test
+    void searchByCriteria_WithDeveloperAndInvestmentCriteria_ShouldReturnPageOfMieszkaniaByCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("Developer2")
+            .investment("Investment2")
+            .build();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaBuilder.createQuery(Long.class)).thenReturn(countQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+        when(countQuery.from(Mieszkanie.class)).thenReturn(countRoot);
+        when(countQuery.select(any())).thenReturn(countQuery);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        // Mock predicates
+        Predicate predicate = mock(Predicate.class);
+        when(criteriaBuilder.equal(any(), any())).thenReturn(predicate);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(countQuery.where(any(Predicate[].class))).thenReturn(countQuery);
+
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(entityManager.createQuery(countQuery)).thenReturn(countTypedQuery);
+
+        when(countTypedQuery.getSingleResult()).thenReturn(2L);
+        when(typedQuery.setFirstResult(0)).thenReturn(typedQuery);
+        when(typedQuery.setMaxResults(10)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        PageResponse<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+        assertEquals(mieszkanie1, result.getContent().get(0));
+        assertEquals(mieszkanie2, result.getContent().get(1));
+        assertEquals(0, result.getPageNumber());
+        assertEquals(10, result.getPageSize());
+        assertEquals(2, result.getTotalElements());
+
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(entityManager).createQuery(countQuery);
+        verify(typedQuery).setFirstResult(0);
+        verify(typedQuery).setMaxResults(10);
+        verify(typedQuery).getResultList();
+        verify(countTypedQuery).getSingleResult();
+
+        // Verify that the correct paths were accessed
+        verify(root).get("developer");
+        verify(root).get("investment");
+
+        // Verify that the correct predicates were created
+        verify(criteriaBuilder).equal(any(), eq("Developer2"));
+        verify(criteriaBuilder).equal(any(), eq("Investment2"));
+    }
+
+    @Test
+    void searchByCriteria_WithEmptyCriteria_ShouldReturnAllMieszkania_WithPagination() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder().build();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaBuilder.createQuery(Long.class)).thenReturn(countQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+        when(countQuery.from(Mieszkanie.class)).thenReturn(countRoot);
+        when(countQuery.select(any())).thenReturn(countQuery);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(countQuery.where(any(Predicate[].class))).thenReturn(countQuery);
+
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(entityManager.createQuery(countQuery)).thenReturn(countTypedQuery);
+
+        when(countTypedQuery.getSingleResult()).thenReturn(2L);
+        when(typedQuery.setFirstResult(0)).thenReturn(typedQuery);
+        when(typedQuery.setMaxResults(10)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        PageResponse<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+        assertEquals(0, result.getPageNumber());
+        assertEquals(10, result.getPageSize());
+        assertEquals(2, result.getTotalElements());
+
+        verify(entityManager).createQuery(criteriaQuery);
+        verify(entityManager).createQuery(countQuery);
+        verify(typedQuery).setFirstResult(0);
+        verify(typedQuery).setMaxResults(10);
+        verify(typedQuery).getResultList();
+        verify(countTypedQuery).getSingleResult();
+
+        // No predicates should be created for empty criteria
+        verify(criteriaBuilder, never()).equal(any(), any());
+        verify(criteriaBuilder, never()).greaterThanOrEqualTo(any(), any(Comparable.class));
+        verify(criteriaBuilder, never()).lessThanOrEqualTo(any(), any(Comparable.class));
+    }
+
+    @Test
+    void searchByCriteria_WithEmptyDeveloperString_ShouldIgnoreDeveloperCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("") // Empty string
+            .build();
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+        // Then
+        assertEquals(2, result.size());
+
+        // Verify that developer predicate was not created for empty string
+        verify(root, never()).get("developer");
+        verify(criteriaBuilder, never()).equal(any(), eq(""));
+    }
+
+    @Test
+    void searchByCriteria_WithEmptyInvestmentString_ShouldIgnoreInvestmentCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .investment("") // Empty string
+            .build();
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+        // Then
+        assertEquals(2, result.size());
+
+        // Verify that investment predicate was not created for empty string
+        verify(root, never()).get("investment");
+        verify(criteriaBuilder, never()).equal(any(), eq(""));
+    }
+
+    @Test
+    void searchByCriteria_WithBothEmptyDeveloperAndInvestmentStrings_ShouldIgnoreBothCriteria() {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("") // Empty string
+            .investment("") // Empty string
+            .build();
+
+        // Setup mocks
+        when(entityManager.getCriteriaBuilder()).thenReturn(criteriaBuilder);
+        when(criteriaBuilder.createQuery(Mieszkanie.class)).thenReturn(criteriaQuery);
+        when(criteriaQuery.from(Mieszkanie.class)).thenReturn(root);
+
+        // Mock path objects
+        Path<Object> path = mock(Path.class);
+        when(root.get(anyString())).thenReturn(path);
+
+        when(criteriaQuery.where(any(Predicate[].class))).thenReturn(criteriaQuery);
+        when(entityManager.createQuery(criteriaQuery)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Arrays.asList(mieszkanie1, mieszkanie2));
+
+        // When
+        List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+        // Then
+        assertEquals(2, result.size());
+
+        // Verify that neither developer nor investment predicates were created for empty strings
+        verify(root, never()).get("developer");
+        verify(root, never()).get("investment");
+        verify(criteriaBuilder, never()).equal(any(), eq(""));
     }
 }

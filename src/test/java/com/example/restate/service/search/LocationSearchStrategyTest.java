@@ -260,4 +260,35 @@ class LocationSearchStrategyTest {
         assertFalse(result1);
         assertFalse(result2);
     }
+
+    @Test
+    void search_WithMixedCriteria_ShouldCreateCorrectPredicates() {
+        // Given - criteria with both location and non-location fields
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .city("Warsaw")
+                .voivodeship("Mazowieckie")
+                .developer("Test Developer") // This would normally be handled by SimpleSearchStrategy
+                .minPrice(BigDecimal.valueOf(300000)) // This would normally be handled by AdvancedSearchStrategy
+                .build();
+
+        // When
+        PageResponse<Mieszkanie> result = locationSearchStrategy.search(criteria, pageable);
+
+        // Then
+        verify(criteriaQuery).where(predicatesCaptor.capture());
+        Predicate[] predicates = predicatesCaptor.getValue();
+        // Only location criteria should be used in this strategy
+        assertEquals(2, predicates.length);
+
+        verify(root, atLeastOnce()).get("city");
+        verify(root, atLeastOnce()).get("voivodeship");
+        verify(root, never()).get("developer");
+        verify(root, never()).get("price");
+
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Warsaw"));
+        verify(criteriaBuilder, atLeastOnce()).equal(any(), eq("Mazowieckie"));
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+    }
 }

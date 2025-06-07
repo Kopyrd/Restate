@@ -59,7 +59,7 @@ class SimpleSearchStrategyTest {
         mieszkanieList = Arrays.asList(mieszkanie1, mieszkanie2);
         pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
         mieszkaniePage = new PageImpl<>(mieszkanieList, pageable, mieszkanieList.size());
-        
+
         criteria = MieszkanieSearchCriteria.builder().build();
     }
 
@@ -69,7 +69,7 @@ class SimpleSearchStrategyTest {
         criteria = MieszkanieSearchCriteria.builder()
                 .developer("Test Developer")
                 .build();
-        
+
         when(mieszkanieRepository.findByDeveloper("Test Developer", pageable)).thenReturn(mieszkaniePage);
 
         // When
@@ -92,7 +92,7 @@ class SimpleSearchStrategyTest {
         criteria = MieszkanieSearchCriteria.builder()
                 .investment("Test Investment")
                 .build();
-        
+
         Page<Mieszkanie> investmentPage = new PageImpl<>(List.of(mieszkanie1), pageable, 1);
         when(mieszkanieRepository.findByInvestment("Test Investment", pageable)).thenReturn(investmentPage);
 
@@ -147,5 +147,54 @@ class SimpleSearchStrategyTest {
         // Then
         assertFalse(result1);
         assertFalse(result2);
+    }
+
+    @Test
+    void search_WithMixedCriteria_ShouldOnlyUseSimpleCriteria() {
+        // Given - criteria with both simple and non-simple fields
+        criteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer") // Simple criteria
+                .city("Warsaw") // Location criteria
+                .minPrice(BigDecimal.valueOf(300000)) // Advanced criteria
+                .build();
+
+        when(mieszkanieRepository.findByDeveloper("Test Developer", pageable)).thenReturn(mieszkaniePage);
+
+        // When
+        PageResponse<Mieszkanie> result = simpleSearchStrategy.search(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+        assertEquals(0, result.getPageNumber());
+        assertEquals(10, result.getPageSize());
+        assertEquals(2, result.getTotalElements());
+        assertEquals(1, result.getTotalPages());
+
+        // Should only use the developer criteria, ignoring city and price
+        verify(mieszkanieRepository, times(1)).findByDeveloper("Test Developer", pageable);
+        verify(mieszkanieRepository, never()).findByInvestment(anyString(), any(Pageable.class));
+        verify(mieszkanieRepository, never()).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void search_WithBothDeveloperAndInvestment_ShouldPrioritizeDeveloper() {
+        // Given - criteria with both developer and investment
+        criteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer")
+                .investment("Test Investment")
+                .build();
+
+        when(mieszkanieRepository.findByDeveloper("Test Developer", pageable)).thenReturn(mieszkaniePage);
+
+        // When
+        PageResponse<Mieszkanie> result = simpleSearchStrategy.search(criteria, pageable);
+
+        // Then
+        assertEquals(2, result.getContent().size());
+
+        // Should prioritize developer over investment
+        verify(mieszkanieRepository, times(1)).findByDeveloper("Test Developer", pageable);
+        verify(mieszkanieRepository, never()).findByInvestment(anyString(), any(Pageable.class));
+        verify(mieszkanieRepository, never()).findAll(any(Pageable.class));
     }
 }

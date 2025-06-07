@@ -116,6 +116,43 @@ class MieszkanieControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void getAllMieszkania_WithCustomPaginationAndSorting_ShouldReturnPageOfMieszkania() throws Exception {
+        // Given
+        PageRequest customPageable = PageRequest.of(2, 5, Sort.by(Sort.Direction.DESC, "price"));
+
+        PageResponse<Mieszkanie> customPageResponse = PageResponse.<Mieszkanie>builder()
+                .content(mieszkanieList)
+                .pageNumber(2)
+                .pageSize(5)
+                .totalElements(11L)
+                .totalPages(3)
+                .last(false)
+                .first(false)
+                .build();
+
+        when(mieszkanieService.findAll(any(Pageable.class))).thenReturn(customPageResponse);
+
+        // When & Then
+        mockMvc.perform(get("/api/mieszkania")
+                        .param("page", "2")
+                        .param("size", "5")
+                        .param("sortBy", "price")
+                        .param("sortDir", "desc")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.pageNumber", is(2)))
+                .andExpect(jsonPath("$.pageSize", is(5)))
+                .andExpect(jsonPath("$.totalElements", is(11)))
+                .andExpect(jsonPath("$.totalPages", is(3)))
+                .andExpect(jsonPath("$.last", is(false)))
+                .andExpect(jsonPath("$.first", is(false)));
+
+        verify(mieszkanieService, times(1)).findAll(eq(customPageable));
+    }
+
+    @Test
     void getMieszkanieById_WhenMieszkanieExists_ShouldReturnMieszkanie() throws Exception {
         // Given
         when(mieszkanieService.findById(1)).thenReturn(Optional.of(mieszkanie));
@@ -173,6 +210,23 @@ class MieszkanieControllerTest {
                 .andExpect(jsonPath("$.investment", is("Test Investment")));
 
         verify(mieszkanieService, times(1)).save(any(Mieszkanie.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createMieszkanie_WithInvalidData_ShouldReturnBadRequest() throws Exception {
+        // Given
+        CreateMieszkanieDTO invalidDTO = new CreateMieszkanieDTO();
+        // Missing required fields
+
+        // When & Then
+        mockMvc.perform(post("/api/mieszkania")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDTO)))
+                .andExpect(status().isBadRequest());
+
+        verify(mieszkanieService, times(0)).save(any(Mieszkanie.class));
     }
 
     @Test
@@ -294,6 +348,65 @@ class MieszkanieControllerTest {
 
         verify(searchContext, times(1)).executeSearch(
                 any(SearchStrategy.SearchType.class),
+                any(MieszkanieSearchCriteria.class),
+                any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void searchByCriteria_WithLocationOnly_ShouldUseLocationStrategy() throws Exception {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .city("Test City")
+                .district("Test District")
+                .voivodeship("Test Voivodeship")
+                .build();
+
+        when(searchContext.executeSearch(
+                eq(SearchStrategy.SearchType.BY_LOCATION),
+                any(MieszkanieSearchCriteria.class),
+                any(Pageable.class))).thenReturn(pageResponse);
+
+        // When & Then
+        mockMvc.perform(post("/api/mieszkania/search")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(criteria)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].id", is(1)));
+
+        verify(searchContext, times(1)).executeSearch(
+                eq(SearchStrategy.SearchType.BY_LOCATION),
+                any(MieszkanieSearchCriteria.class),
+                any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void searchByCriteria_WithAdvancedCriteria_ShouldUseAdvancedStrategy() throws Exception {
+        // Given
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer("Test Developer")
+                .minPrice(BigDecimal.valueOf(400000))  // This makes it use ADVANCED strategy
+                .build();
+
+        when(searchContext.executeSearch(
+                eq(SearchStrategy.SearchType.ADVANCED),
+                any(MieszkanieSearchCriteria.class),
+                any(Pageable.class))).thenReturn(pageResponse);
+
+        // When & Then
+        mockMvc.perform(post("/api/mieszkania/search")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(criteria)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].id", is(1)));
+
+        verify(searchContext, times(1)).executeSearch(
+                eq(SearchStrategy.SearchType.ADVANCED),
                 any(MieszkanieSearchCriteria.class),
                 any(Pageable.class));
     }
