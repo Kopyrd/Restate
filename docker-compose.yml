@@ -6,15 +6,53 @@ services:
       POSTGRES_DB: mieszkania
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypass
-
     ports:
       - "5432:5432"
     volumes:
-
       - ./data/mieszkania.csv:/data/mieszkania.csv
       - pgdata:/var/lib/postgresql/data
-      #- ./db/migration:/docker-entrypoint-initdb.d  # uruchamia skrypty SQL
+    networks:
+      - restate-network
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: restate-app
+    environment:
+      # Database connection
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mieszkania
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypass
+      
+      # JPA/Hibernate
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      
+      # JWT
+      JWT_SECRET: mySecretKey123456789012345678901234567890
+      JWT_EXPIRATION: "86400000"
+      
+      # Server
+      SERVER_PORT: 8080
+      
+      # Logging
+      LOGGING_LEVEL_COM_EXAMPLE_RESTATE: DEBUG
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - restate-network
+    restart: unless-stopped
 
 volumes:
   pgdata:
+
+networks:
+  restate-network:
+    driver: bridge
