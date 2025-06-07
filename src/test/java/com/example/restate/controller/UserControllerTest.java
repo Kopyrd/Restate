@@ -1,5 +1,6 @@
 package com.example.restate.controller;
 
+import com.example.restate.dto.RegisterRequest;
 import com.example.restate.dto.UpdateUserDTO;
 import com.example.restate.dto.UserProfileDTO;
 import com.example.restate.entity.Role;
@@ -205,13 +206,12 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void createAdmin_ShouldCreateAndReturnAdmin() throws Exception {
-        // Given
-        User newAdmin = new User();
-        newAdmin.setUsername("newadmin");
-        newAdmin.setPassword("password");
-        newAdmin.setEmail("newadmin@example.com");
-        newAdmin.setFirstName("New");
-        newAdmin.setLastName("Admin");
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newadmin");
+        registerRequest.setPassword("password");
+        registerRequest.setEmail("newadmin@example.com");
+        registerRequest.setFirstName("New");
+        registerRequest.setLastName("Admin");
 
         User createdAdmin = new User();
         createdAdmin.setId(3L);
@@ -221,19 +221,19 @@ class UserControllerTest {
         createdAdmin.setLastName("Admin");
         createdAdmin.setRole(Role.ADMIN);
 
-        when(userService.createAdmin(any(User.class))).thenReturn(createdAdmin);
+        when(userService.save(any(User.class))).thenReturn(createdAdmin);
 
-        // When & Then
         mockMvc.perform(post("/api/users/admin")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newAdmin)))
+                        .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(3)))
                 .andExpect(jsonPath("$.username", is("newadmin")))
                 .andExpect(jsonPath("$.role", is("ROLE_ADMIN")));
 
-        verify(userService, times(1)).createAdmin(any(User.class));
+
+        verify(userService, times(1)).save(any(User.class));
     }
 
     @Test

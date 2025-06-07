@@ -1,5 +1,6 @@
 package com.example.restate.controller;
 
+import com.example.restate.dto.RegisterRequest;
 import com.example.restate.dto.UpdateUserDTO;
 import com.example.restate.dto.UserProfileDTO;
 import com.example.restate.entity.User;
@@ -21,6 +22,7 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
+import com.example.restate.entity.Role;
 
 @RestController
 @RequestMapping("/api/users")
@@ -73,11 +75,23 @@ public class UserController {
     }
 
     @PostMapping("/admin")
+    @Operation(summary = "Utwórz nowego administratora")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create admin user", description = "Admin only")
-    public ResponseEntity<UserProfileDTO> createAdmin(@Valid @RequestBody User user) {
-        User admin = userService.createAdmin(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(UserProfileDTO.fromEntity(admin));
+    public ResponseEntity<UserProfileDTO> createAdmin(@Valid @RequestBody RegisterRequest registerRequest) {
+        User newAdmin = new User();
+        newAdmin.setUsername(registerRequest.getUsername());
+        newAdmin.setPassword(registerRequest.getPassword());
+        newAdmin.setEmail(registerRequest.getEmail());
+        newAdmin.setFirstName(registerRequest.getFirstName());
+        newAdmin.setLastName(registerRequest.getLastName());
+        newAdmin.setRole(Role.ADMIN);
+        newAdmin.setEnabled(true);
+        
+        User savedAdmin = userService.save(newAdmin);
+
+        UserProfileDTO responseDTO = UserProfileDTO.fromEntity(savedAdmin);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     @GetMapping("/profile")
