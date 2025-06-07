@@ -135,7 +135,16 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String strategy) {
 
-        SearchStrategy.SearchType searchType = determineStrategy(criteria);
+        SearchStrategy.SearchType searchType;
+        if (strategy != null && !strategy.isEmpty()) {
+            try {
+                searchType = SearchStrategy.SearchType.valueOf(strategy.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                searchType = determineStrategy(criteria);
+            }
+        } else {
+            searchType = determineStrategy(criteria);
+        }
         return executeStrategySearch(searchType, criteria, page, size, sortBy, sortDir);
     }
 
