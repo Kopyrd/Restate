@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -90,8 +88,6 @@ public class MieszkanieController {
         return ResponseEntity.noContent().build();
     }
 
-
-
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -108,7 +104,6 @@ public class MieszkanieController {
 
         return executeStrategySearch(SearchStrategy.SearchType.SIMPLE, criteria, page, size, sortBy, sortDir);
     }
-
 
     @GetMapping("/price-range")
     @Operation(summary = "Get apartments by price range")
@@ -129,9 +124,6 @@ public class MieszkanieController {
         return executeStrategySearch(SearchStrategy.SearchType.ADVANCED, criteria, page, size, sortBy, sortDir);
     }
 
-
-
-
     @PostMapping("/search")
     @Operation(summary = "Search apartments by multiple criteria")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -140,10 +132,11 @@ public class MieszkanieController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String strategy) {
 
-        SearchStrategy.SearchType strategy = determineStrategy(criteria);
-        return executeStrategySearch(strategy, criteria, page, size, sortBy, sortDir);
+        SearchStrategy.SearchType searchType = determineStrategy(criteria);
+        return executeStrategySearch(searchType, criteria, page, size, sortBy, sortDir);
     }
 
     private SearchStrategy.SearchType determineStrategy(MieszkanieSearchCriteria criteria) {
@@ -164,21 +157,20 @@ public class MieszkanieController {
            criteria.getDistrict() != null;
     }
 
-private boolean hasAdvancedCriteria(MieszkanieSearchCriteria criteria) {
-    return criteria.getFloor() != null ||
-           criteria.getMinPrice() != null || 
-           criteria.getMaxPrice() != null ||
-           criteria.getMinArea() != null || 
-           criteria.getMaxArea() != null ||
-           criteria.getStatus() != null;
-}
+    private boolean hasAdvancedCriteria(MieszkanieSearchCriteria criteria) {
+        return criteria.getFloor() != null ||
+               criteria.getMinPrice() != null || 
+               criteria.getMaxPrice() != null ||
+               criteria.getMinArea() != null || 
+               criteria.getMaxArea() != null ||
+               criteria.getStatus() != null;
+    }
 
-private boolean hasOtherCriteria(MieszkanieSearchCriteria criteria) {
-    return criteria.getDeveloper() != null || 
-           criteria.getInvestment() != null ||
-           hasAdvancedCriteria(criteria);
-}
-
+    private boolean hasOtherCriteria(MieszkanieSearchCriteria criteria) {
+        return criteria.getDeveloper() != null || 
+               criteria.getInvestment() != null ||
+               hasAdvancedCriteria(criteria);
+    }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
