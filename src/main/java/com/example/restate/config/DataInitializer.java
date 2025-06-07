@@ -19,7 +19,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userService.existsByUsername("admin")) {
             User admin = new User();
             admin.setUsername("admin");
-            admin.setPassword("password123"); // Zostanie automatycznie zahashowane
+            admin.setPassword("password123");
             admin.setEmail("admin@restate.pl");
             admin.setFirstName("Admin");
             admin.setLastName("User");
@@ -32,7 +32,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userService.existsByUsername("user1")) {
             User user = new User();
             user.setUsername("user1");
-            user.setPassword("password123"); // Zostanie automatycznie zahashowane
+            user.setPassword("password123");
             user.setEmail("user1@restate.pl");
             user.setFirstName("John");
             user.setLastName("Doe");
