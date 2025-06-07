@@ -378,13 +378,13 @@ public class MieszkanieServiceIntegrationTest extends IntegrationTestConfig {
         Mieszkanie mieszkanie = mieszkanieRepository.findAll().get(0);
         Integer id = mieszkanie.getId();
 
-        // When
+
         Mieszkanie result = mieszkanieService.changeStatus(id, Mieszkanie.Status.SOLD);
 
-        // Then
+
         assertEquals(Mieszkanie.Status.SOLD, result.getStatus());
 
-        // Verify in database
+
         Mieszkanie updated = mieszkanieRepository.findById(id).orElse(null);
         assertNotNull(updated);
         assertEquals(Mieszkanie.Status.SOLD, updated.getStatus());
@@ -392,7 +392,7 @@ public class MieszkanieServiceIntegrationTest extends IntegrationTestConfig {
 
     @Test
     void changeStatus_NonExistingId_ShouldThrowException() {
-        // When & Then
+
         assertThrows(ResourceNotFoundException.class, () -> {
             mieszkanieService.changeStatus(999999, Mieszkanie.Status.SOLD);
         });
@@ -409,10 +409,8 @@ public class MieszkanieServiceIntegrationTest extends IntegrationTestConfig {
         dto.setDescription("Updated from DTO");
         dto.setCity("New City");
 
-        // When
         Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
 
-        // Then
         assertEquals(id, result.getId());
         assertEquals(BigDecimal.valueOf(800000), result.getPrice());
         assertEquals("Updated from DTO", result.getDescription());
@@ -432,4 +430,374 @@ public class MieszkanieServiceIntegrationTest extends IntegrationTestConfig {
             mieszkanieService.updateFromDTO(999999, dto);
         });
     }
+
+@Test
+void updateFromDTO_WithAllFields_ShouldUpdateAllFields() {
+    // Given
+    Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+    Integer id = existing.getId();
+    
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder()
+            .developer("UpdatedDev")
+            .investment("Updated Investment")
+            .number("U001")
+            .area(BigDecimal.valueOf(95.5))
+            .price(BigDecimal.valueOf(850000))
+            .voivodeship("Małopolskie")
+            .city("Kraków")
+            .district("Stare Miasto")
+            .floor(15)
+            .description("Completely updated apartment description")
+            .build();
+
+    // When
+    Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
+
+    // Then
+    assertEquals("UpdatedDev", result.getDeveloper());
+    assertEquals("Updated Investment", result.getInvestment());
+    assertEquals("U001", result.getNumber());
+    assertEquals(BigDecimal.valueOf(95.5), result.getArea());
+    assertEquals(BigDecimal.valueOf(850000), result.getPrice());
+    assertEquals("Małopolskie", result.getVoivodeship());
+    assertEquals("Kraków", result.getCity());
+    assertEquals("Stare Miasto", result.getDistrict());
+    assertEquals(15, result.getFloor());
+    assertEquals("Completely updated apartment description", result.getDescription());
+    
+    // Verify in database
+    Mieszkanie fromDb = mieszkanieRepository.findById(id).orElseThrow();
+    assertEquals("UpdatedDev", fromDb.getDeveloper());
+    assertEquals("Kraków", fromDb.getCity());
+}
+
+@Test
+void updateFromDTO_WithPartialFields_ShouldUpdateOnlySpecifiedFields() {
+    // Given
+    Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+    Integer id = existing.getId();
+    String originalDeveloper = existing.getDeveloper();
+    String originalCity = existing.getCity();
+    
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder()
+            .price(BigDecimal.valueOf(999999))
+            .description("Only price and description updated")
+            .build();
+
+    // When
+    Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
+
+    // Then
+    assertEquals(BigDecimal.valueOf(999999), result.getPrice());
+    assertEquals("Only price and description updated", result.getDescription());
+    
+    // Unchanged fields should remain the same
+    assertEquals(originalDeveloper, result.getDeveloper());
+    assertEquals(originalCity, result.getCity());
+    assertEquals(existing.getInvestment(), result.getInvestment());
+    assertEquals(existing.getArea(), result.getArea());
+}
+
+@Test
+void updateFromDTO_WithNullFields_ShouldNotUpdateNullFields() {
+    // Given
+    Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+    Integer id = existing.getId();
+    String originalDeveloper = existing.getDeveloper();
+    BigDecimal originalPrice = existing.getPrice();
+    
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder()
+            .developer(null)
+            .investment(null)
+            .number(null)
+            .area(null)
+            .price(null)
+            .voivodeship(null)
+            .city(null)
+            .district(null)
+            .floor(null)
+            .description("Only description changed")
+            .build();
+
+    // When
+    Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
+
+    // Then
+    assertEquals("Only description changed", result.getDescription());
+    
+    // All other fields should remain unchanged
+    assertEquals(originalDeveloper, result.getDeveloper());
+    assertEquals(originalPrice, result.getPrice());
+    assertEquals(existing.getInvestment(), result.getInvestment());
+    assertEquals(existing.getCity(), result.getCity());
+}
+
+@Test
+void updateFromDTO_WithEmptyDTO_ShouldNotChangeAnything() {
+    // Given
+    Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+    Integer id = existing.getId();
+    String originalDeveloper = existing.getDeveloper();
+    BigDecimal originalPrice = existing.getPrice();
+    
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder().build();
+
+    // When
+    Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
+
+    assertEquals(originalDeveloper, result.getDeveloper());
+    assertEquals(originalPrice, result.getPrice());
+    assertEquals(existing.getInvestment(), result.getInvestment());
+    assertEquals(existing.getArea(), result.getArea());
+    assertEquals(existing.getCity(), result.getCity());
+}
+
+@Test
+void updateFromDTO_WithNonExistentId_ShouldThrowResourceNotFoundException() {
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder()
+            .developer("Test Developer")
+            .build();
+
+    ResourceNotFoundException exception = assertThrows(
+            ResourceNotFoundException.class,
+            () -> mieszkanieService.updateFromDTO(999999, dto)
+    );
+    
+    assertTrue(exception.getMessage().contains("Mieszkanie o ID 999999 nie znalezione"));
+}
+
+@Test
+void updateFromDTO_WithZeroValues_ShouldUpdateToZeroValues() {
+    Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+    Integer id = existing.getId();
+    
+    UpdateMieszkanieDTO dto = UpdateMieszkanieDTO.builder()
+            .floor(0)
+            .area(BigDecimal.valueOf(0.1))
+            .price(BigDecimal.valueOf(1))
+            .build();
+
+    // When
+    Mieszkanie result = mieszkanieService.updateFromDTO(id, dto);
+
+    // Then
+    assertEquals(0, result.getFloor());
+    assertEquals(BigDecimal.valueOf(0.1), result.getArea());
+    assertEquals(BigDecimal.valueOf(1), result.getPrice());
+}
+
+
+@Test
+void searchByCriteria_WithDeveloperOnly_ShouldReturnMatchingMieszkania() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("LuxDev")
+            .build();
+
+    // When
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    // Then
+    assertEquals(1, result.size());
+    assertEquals("LuxDev", result.get(0).getDeveloper());
+}
+
+@Test
+void searchByCriteria_WithInvestmentOnly_ShouldReturnMatchingMieszkania() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .investment("City Park")
+            .build();
+
+    // When
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    // Then
+    assertEquals(1, result.size());
+    assertEquals("City Park", result.get(0).getInvestment());
+}
+
+@Test
+void searchByCriteria_WithPriceRange_ShouldReturnMieszkaniaInRange() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minPrice(BigDecimal.valueOf(400000))
+            .maxPrice(BigDecimal.valueOf(500000))
+            .build();
+
+    // When
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    // Then
+    assertEquals(1, result.size());
+    assertTrue(result.get(0).getPrice().compareTo(BigDecimal.valueOf(400000)) >= 0);
+    assertTrue(result.get(0).getPrice().compareTo(BigDecimal.valueOf(500000)) <= 0);
+}
+
+@Test
+void searchByCriteria_WithAreaRange_ShouldReturnMieszkaniaInRange() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minArea(BigDecimal.valueOf(60.0))
+            .maxArea(BigDecimal.valueOf(90.0))
+            .build();
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(2, result.size()); // LuxDev (85.5) and StandardDev (62.0)
+    assertTrue(result.stream().allMatch(m -> 
+        m.getArea().compareTo(BigDecimal.valueOf(60.0)) >= 0 && 
+        m.getArea().compareTo(BigDecimal.valueOf(90.0)) <= 0));
+}
+
+@Test
+void searchByCriteria_WithMinPriceOnly_ShouldReturnMieszkaniaAboveMinPrice() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minPrice(BigDecimal.valueOf(500000))
+            .build();
+
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(1, result.size());
+    assertEquals("LuxDev", result.get(0).getDeveloper());
+    assertTrue(result.get(0).getPrice().compareTo(BigDecimal.valueOf(500000)) >= 0);
+}
+
+@Test
+void searchByCriteria_WithMaxPriceOnly_ShouldReturnMieszkaniaBelowMaxPrice() {
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .maxPrice(BigDecimal.valueOf(300000))
+            .build();
+
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(1, result.size());
+    assertEquals("BudgetDev", result.get(0).getDeveloper());
+    assertTrue(result.get(0).getPrice().compareTo(BigDecimal.valueOf(300000)) <= 0);
+}
+
+@Test
+void searchByCriteria_WithMinAreaOnly_ShouldReturnMieszkaniaAboveMinArea() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minArea(BigDecimal.valueOf(80.0))
+            .build();
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(1, result.size());
+    assertEquals("LuxDev", result.get(0).getDeveloper());
+    assertTrue(result.get(0).getArea().compareTo(BigDecimal.valueOf(80.0)) >= 0);
+}
+
+@Test
+void searchByCriteria_WithMaxAreaOnly_ShouldReturnMieszkaniaBelowMaxArea() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .maxArea(BigDecimal.valueOf(50.0))
+            .build();
+
+    // When
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    // Then
+    assertEquals(1, result.size());
+    assertEquals("BudgetDev", result.get(0).getDeveloper());
+    assertTrue(result.get(0).getArea().compareTo(BigDecimal.valueOf(50.0)) <= 0);
+}
+
+@Test
+void searchByCriteria_WithMultipleCriteria_ShouldReturnMatchingMieszkania() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("LuxDev")
+            .minPrice(BigDecimal.valueOf(700000))
+            .minArea(BigDecimal.valueOf(80.0))
+            .build();
+
+    // When
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    // Then
+    assertEquals(1, result.size());
+    Mieszkanie found = result.get(0);
+    assertEquals("LuxDev", found.getDeveloper());
+    assertTrue(found.getPrice().compareTo(BigDecimal.valueOf(700000)) >= 0);
+    assertTrue(found.getArea().compareTo(BigDecimal.valueOf(80.0)) >= 0);
+}
+
+@Test
+void searchByCriteria_WithEmptyCriteria_ShouldReturnAllMieszkania() {
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder().build();
+
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+
+    assertEquals(3, result.size());
+}
+
+@Test
+void searchByCriteria_WithEmptyStringCriteria_ShouldIgnoreEmptyStrings() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("")
+            .investment("")
+            .minPrice(BigDecimal.valueOf(400000))
+            .build();
+
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+
+    assertEquals(2, result.size()); // Should ignore empty developer and investment
+    assertTrue(result.stream().allMatch(m -> 
+        m.getPrice().compareTo(BigDecimal.valueOf(400000)) >= 0));
+}
+
+@Test
+void searchByCriteria_WithNullStringCriteria_ShouldIgnoreNullStrings() {
+    // Given
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer(null)
+            .investment(null)
+            .maxPrice(BigDecimal.valueOf(500000))
+            .build();
+
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+
+    assertEquals(2, result.size());
+    assertTrue(result.stream().allMatch(m -> 
+        m.getPrice().compareTo(BigDecimal.valueOf(500000)) <= 0));
+}
+
+
+@Test
+void searchByCriteria_WithStrictRangeFilters_ShouldReturnNoResults() {
+    // Given - impossible criteria
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .minPrice(BigDecimal.valueOf(1000000))
+            .maxPrice(BigDecimal.valueOf(2000000))
+            .build();
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(0, result.size());
+}
+
+@Test
+void searchByCriteria_WithInvalidDeveloper_ShouldReturnNoResults() {
+    MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+            .developer("NonExistentDeveloper")
+            .build();
+
+    List<Mieszkanie> result = mieszkanieService.searchByCriteria(criteria);
+
+    assertEquals(0, result.size());
+}
 }
