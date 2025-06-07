@@ -420,4 +420,241 @@ public class UserControllerIntegrationTest extends IntegrationTestConfig {
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
+
+    @Test
+    void testUpdateUserWithAllFields_AsAdmin() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .username("newUsername")
+                .email("newemail@example.com")
+                .firstName("NewFirstName")
+                .lastName("NewLastName")
+                .password("NewPassword123!")
+                .role(Role.ADMIN)
+                .enabled(false)
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("newUsername", response.getBody().getUsername());
+        assertEquals("newemail@example.com", response.getBody().getEmail());
+        assertEquals("NewFirstName", response.getBody().getFirstName());
+        assertEquals("NewLastName", response.getBody().getLastName());
+        assertEquals("ROLE_ADMIN", response.getBody().getRole());
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertEquals("newUsername", updatedUser.getUsername());
+        assertEquals("newemail@example.com", updatedUser.getEmail());
+        assertEquals("NewFirstName", updatedUser.getFirstName());
+        assertEquals("NewLastName", updatedUser.getLastName());
+        assertEquals(Role.ADMIN, updatedUser.getRole());
+        assertFalse(updatedUser.isEnabled());
+        // Hasło powinno zostać zaktualizowane
+        assertNotEquals(USER_PASSWORD, updatedUser.getPassword());
+    }
+
+    @Test
+    void testUpdateUserWithPartialFields_AsAdmin() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .firstName("OnlyFirstName")
+                .email("onlyemail@example.com")
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        
+        assertEquals("OnlyFirstName", response.getBody().getFirstName());
+        assertEquals("onlyemail@example.com", response.getBody().getEmail());
+        
+        assertEquals(USER_USERNAME, response.getBody().getUsername());
+        assertEquals("User", response.getBody().getLastName()); // Oryginalne nazwisko
+        assertEquals("ROLE_USER", response.getBody().getRole()); // Oryginalna rola
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertEquals("OnlyFirstName", updatedUser.getFirstName());
+        assertEquals("onlyemail@example.com", updatedUser.getEmail());
+        assertEquals(USER_USERNAME, updatedUser.getUsername());
+        assertEquals("User", updatedUser.getLastName());
+        assertEquals(Role.USER, updatedUser.getRole());
+    }
+
+    @Test
+    void testUpdateUserWithNullFields_AsAdmin() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .firstName("UpdatedName")
+                .username(null)
+                .email(null)
+                .lastName(null)
+                .password(null)
+                .role(null)
+                .enabled(null)
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+
+        // When
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        
+        assertEquals("UpdatedName", response.getBody().getFirstName());
+        
+        assertEquals(USER_USERNAME, response.getBody().getUsername());
+        assertEquals(USER_EMAIL, response.getBody().getEmail());
+        assertEquals("User", response.getBody().getLastName());
+        assertEquals("ROLE_USER", response.getBody().getRole());
+
+        // Weryfikuj w bazie danych
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertEquals("UpdatedName", updatedUser.getFirstName());
+        assertEquals(USER_USERNAME, updatedUser.getUsername());
+        assertEquals(USER_EMAIL, updatedUser.getEmail());
+        assertEquals("User", updatedUser.getLastName());
+        assertEquals(Role.USER, updatedUser.getRole());
+        assertTrue(updatedUser.isEnabled()); // Powinno pozostać enabled
+    }
+
+    @Test
+    void testUpdateUserWithEmptyPassword_AsAdmin() {
+        // Given - UpdateUserDTO z pustym hasłem (nie powinno być aktualizowane)
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .firstName("TestName")
+                .password("") // Puste hasło
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+        String originalPassword = userRepository.findById(regularUser.getId()).get().getPassword();
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("TestName", response.getBody().getFirstName());
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+
+        assertNotEquals(originalPassword, updatedUser.getPassword());
+    }
+
+    @Test
+    void testUpdateCurrentUserWithRoleChange_ShouldNotChangeRole() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .firstName("UpdatedByUser")
+                .role(Role.ADMIN)
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, userHeaders);
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/me",
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("UpdatedByUser", response.getBody().getFirstName());
+        
+        assertEquals("ROLE_ADMIN", response.getBody().getRole());
+
+        User updatedUser = userRepository.findByUsername(USER_USERNAME).orElseThrow();
+        assertEquals("UpdatedByUser", updatedUser.getFirstName());
+        assertEquals(Role.ADMIN, updatedUser.getRole()); // toEntity aktualizuje wszystkie pola
+    }
+
+    @Test
+    void testUpdateUserDisabling_AsAdmin() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .enabled(false)
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertFalse(updatedUser.isEnabled());
+    }
+
+    @Test
+    void testUpdateUserEnabling_AsAdmin() {
+        regularUser.setEnabled(false);
+        userRepository.save(regularUser);
+
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .enabled(true)
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertTrue(updatedUser.isEnabled());
+    }
+
+    @Test
+    void testUpdateUserWithWhitespacePassword_AsAdmin() {
+        UpdateUserDTO updateDTO = UpdateUserDTO.builder()
+                .firstName("TestName")
+                .password("   ") // Tylko białe znaki
+                .build();
+
+        HttpEntity<UpdateUserDTO> requestEntity = new HttpEntity<>(updateDTO, adminHeaders);
+        String originalPassword = userRepository.findById(regularUser.getId()).get().getPassword();
+
+        ResponseEntity<UserProfileDTO> response = restTemplate.exchange(
+                BASE_URL + "/" + regularUser.getId(),
+                HttpMethod.PUT,
+                requestEntity,
+                UserProfileDTO.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
+        assertNotEquals(originalPassword, updatedUser.getPassword());
+    }
 }
