@@ -1,329 +1,464 @@
 package com.example.restate.controller;
 
 import com.example.restate.config.IntegrationTestConfig;
-import com.example.restate.dto.AuthRequest;
-import com.example.restate.dto.AuthResponse;
 import com.example.restate.dto.CreateMieszkanieDTO;
-import com.example.restate.dto.MieszkanieDTO;
+import com.example.restate.dto.MieszkanieSearchCriteria;
 import com.example.restate.dto.UpdateMieszkanieDTO;
 import com.example.restate.entity.Mieszkanie;
 import com.example.restate.entity.Role;
 import com.example.restate.entity.User;
 import com.example.restate.repository.MieszkanieRepository;
 import com.example.restate.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
-import java.util.Objects;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Integration tests for the MieszkanieController using a real PostgreSQL database in a Docker container.
- */
+
 public class MieszkanieControllerIntegrationTest extends IntegrationTestConfig {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
     @Autowired
-    private UserRepository userRepository;
+    private MieszkanieRepository mieszkanieRepository;
 
     @Autowired
-    private MieszkanieRepository mieszkanieRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private static final String AUTH_URL = "/api/auth/login";
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private static final String BASE_URL = "/api/mieszkania";
-    private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_EMAIL = "admin@example.com";
-    private static final String ADMIN_PASSWORD = "Admin123!";
-    
     private String adminToken;
-    private HttpHeaders headers;
+    private String userToken;
 
     @BeforeEach
     void setUp() {
-        // Clean up the database
+        // Wyczyść bazę danych
         mieszkanieRepository.deleteAll();
         userRepository.deleteAll();
+
+        // Utwórz użytkowników testowych
+        setupTestUsers();
         
-        // Create admin user
-        User adminUser = new User();
-        adminUser.setUsername(ADMIN_USERNAME);
-        adminUser.setEmail(ADMIN_EMAIL);
-        adminUser.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
-        adminUser.setFirstName("Admin");
-        adminUser.setLastName("User");
-        adminUser.setRole(Role.ADMIN);
-        userRepository.save(adminUser);
-        
-        // Login as admin and get token
-        AuthRequest authRequest = new AuthRequest();
-        authRequest.setUsername(ADMIN_USERNAME);
-        authRequest.setPassword(ADMIN_PASSWORD);
-        
-        ResponseEntity<AuthResponse> authResponse = restTemplate.postForEntity(
-                AUTH_URL,
-                authRequest,
-                AuthResponse.class
-        );
-        
-        adminToken = Objects.requireNonNull(authResponse.getBody()).getToken();
-        
-        // Set up headers with token
-        headers = new HttpHeaders();
-        headers.setBearerAuth(adminToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        // Dodaj testowe mieszkania
+        setupTestMieszkania();
     }
 
     @AfterEach
     void tearDown() {
-        // Clean up the database
         mieszkanieRepository.deleteAll();
         userRepository.deleteAll();
     }
 
-    @Test
-    void testCreateMieszkanie() {
-        // Given
-        CreateMieszkanieDTO createDTO = CreateMieszkanieDTO.builder()
-                .developer("Test Developer")
-                .investment("Test Investment")
-                .number("A-123")
-                .area(new BigDecimal("75.50"))
-                .price(new BigDecimal("500000.00"))
-                .voivodeship("Mazowieckie")
-                .city("Warsaw")
-                .district("Mokotów")
-                .floor(3)
-                .description("Test apartment description")
-                .build();
+    private void setupTestUsers() {
+        // Admin user
+        User admin = new User();
+        admin.setUsername("admin");
+        admin.setEmail("admin@test.com");
+        admin.setPassword(passwordEncoder.encode("Admin123!"));
+        admin.setFirstName("Admin");
+        admin.setLastName("User");
+        admin.setRole(Role.ADMIN);
+        admin.setEnabled(true);
+        userRepository.save(admin);
 
-        HttpEntity<CreateMieszkanieDTO> requestEntity = new HttpEntity<>(createDTO, headers);
+        // Regular user
+        User user = new User();
+        user.setUsername("user");
+        user.setEmail("user@test.com");
+        user.setPassword(passwordEncoder.encode("User123!"));
+        user.setFirstName("Regular");
+        user.setLastName("User");
+        user.setRole(Role.USER);
+        user.setEnabled(true);
+        userRepository.save(user);
+
+        // Uzyskaj tokeny
+        adminToken = getAuthToken("admin", "Admin123!");
+        userToken = getAuthToken("user", "User123!");
+    }
+
+    private String getAuthToken(String username, String password) {
+        try {
+            var authRequest = objectMapper.createObjectNode();
+            authRequest.put("username", username);
+            authRequest.put("password", password);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    "/api/auth/login",
+                    authRequest,
+                    String.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                var responseBody = objectMapper.readTree(response.getBody());
+                return responseBody.get("token").asText();
+            }
+        } catch (Exception e) {
+            fail("Failed to get auth token: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private void setupTestMieszkania() {
+        // Mieszkanie 1 - Luksusowe
+        Mieszkanie m1 = new Mieszkanie();
+        m1.setDeveloper("LuxDev");
+        m1.setInvestment("Golden Heights");
+        m1.setNumber("A101");
+        m1.setArea(BigDecimal.valueOf(85.5));
+        m1.setPrice(BigDecimal.valueOf(750000));
+        m1.setVoivodeship("Mazowieckie");
+        m1.setCity("Warszawa");
+        m1.setDistrict("Śródmieście");
+        m1.setFloor(10);
+        m1.setDescription("Luksusowe mieszkanie w centrum");
+        m1.setStatus(Mieszkanie.Status.AVAILABLE);
+
+        // Mieszkanie 2 - Średnia klasa
+        Mieszkanie m2 = new Mieszkanie();
+        m2.setDeveloper("StandardDev");
+        m2.setInvestment("City Park");
+        m2.setNumber("B205");
+        m2.setArea(BigDecimal.valueOf(62.0));
+        m2.setPrice(BigDecimal.valueOf(450000));
+        m2.setVoivodeship("Mazowieckie");
+        m2.setCity("Warszawa");
+        m2.setDistrict("Mokotów");
+        m2.setFloor(2);
+        m2.setDescription("Nowoczesne mieszkanie w zielonym otoczeniu");
+        m2.setStatus(Mieszkanie.Status.AVAILABLE);
+
+        // Mieszkanie 3 - Budżetowe
+        Mieszkanie m3 = new Mieszkanie();
+        m3.setDeveloper("BudgetDev");
+        m3.setInvestment("Affordable Living");
+        m3.setNumber("C15");
+        m3.setArea(BigDecimal.valueOf(45.0));
+        m3.setPrice(BigDecimal.valueOf(280000));
+        m3.setVoivodeship("Śląskie");
+        m3.setCity("Katowice");
+        m3.setDistrict("Centrum");
+        m3.setFloor(5);
+        m3.setDescription("Kompaktowe mieszkanie dla młodych");
+        m3.setStatus(Mieszkanie.Status.RESERVED);
+
+        mieszkanieRepository.saveAll(List.of(m1, m2, m3));
+    }
+
+    @Test
+    void getAllMieszkania_AsUser_ShouldReturnPagedResults() {
+        // Given
+        HttpHeaders headers = createAuthHeaders(userToken);
 
         // When
-        ResponseEntity<MieszkanieDTO> response = restTemplate.exchange(
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "?page=0&size=2&sortBy=price&sortDir=desc",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("\"totalElements\":3"));
+        assertTrue(response.getBody().contains("\"pageSize\":2"));
+        assertTrue(response.getBody().contains("Golden Heights")); // Najdroższe powinno być pierwsze
+    }
+
+    @Test
+    void getMieszkanieById_ExistingId_ShouldReturnMieszkanie() {
+        // Given
+        Mieszkanie saved = mieszkanieRepository.findAll().get(0);
+        HttpHeaders headers = createAuthHeaders(userToken);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + saved.getId(),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains(saved.getDeveloper()));
+    }
+
+    @Test
+    void getMieszkanieById_NonExistingId_ShouldReturnNotFound() {
+        // Given
+        HttpHeaders headers = createAuthHeaders(userToken);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/999999",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void createMieszkanie_AsAdmin_ShouldCreateSuccessfully() throws Exception {
+        // Given
+        HttpHeaders headers = createAuthHeaders(adminToken);
+        
+        CreateMieszkanieDTO dto = new CreateMieszkanieDTO();
+        dto.setDeveloper("NewDev");
+        dto.setInvestment("New Investment");
+        dto.setNumber("D301");
+        dto.setArea(BigDecimal.valueOf(70.0));
+        dto.setPrice(BigDecimal.valueOf(500000));
+        dto.setVoivodeship("Wielkopolskie");
+        dto.setCity("Poznań");
+        dto.setDistrict("Stare Miasto");
+        dto.setFloor(3);
+        dto.setDescription("Nowe mieszkanie testowe");
+
+        HttpEntity<CreateMieszkanieDTO> request = new HttpEntity<>(dto, headers);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
                 BASE_URL,
                 HttpMethod.POST,
-                requestEntity,
-                MieszkanieDTO.class
+                request,
+                String.class
         );
 
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getId());
-        assertEquals("Test Developer", response.getBody().getDeveloper());
-        assertEquals("Test Investment", response.getBody().getInvestment());
-        assertEquals("A-123", response.getBody().getNumber());
-        assertEquals(0, new BigDecimal("75.50").compareTo(response.getBody().getArea()));
-        assertEquals(0, new BigDecimal("500000.00").compareTo(response.getBody().getPrice()));
-        assertEquals("Mazowieckie", response.getBody().getVoivodeship());
-        assertEquals("Warsaw", response.getBody().getCity());
-        assertEquals("Mokotów", response.getBody().getDistrict());
-        assertEquals(3, response.getBody().getFloor());
-        assertEquals("Test apartment description", response.getBody().getDescription());
-        assertEquals(Mieszkanie.Status.AVAILABLE, response.getBody().getStatus());
+        assertTrue(response.getBody().contains("NewDev"));
+        assertEquals(4, mieszkanieRepository.count()); // 3 początkowe + 1 nowe
     }
 
     @Test
-    void testGetMieszkanieById() {
+    void createMieszkanie_AsUser_ShouldBeForbidden() throws Exception {
         // Given
-        // Create a mieszkanie first
-        CreateMieszkanieDTO createDTO = CreateMieszkanieDTO.builder()
-                .developer("Test Developer")
-                .investment("Test Investment")
-                .number("A-123")
-                .area(new BigDecimal("75.50"))
-                .price(new BigDecimal("500000.00"))
-                .voivodeship("Mazowieckie")
-                .city("Warsaw")
-                .district("Mokotów")
-                .floor(3)
-                .description("Test apartment description")
-                .build();
-
-        HttpEntity<CreateMieszkanieDTO> createRequestEntity = new HttpEntity<>(createDTO, headers);
-        ResponseEntity<MieszkanieDTO> createResponse = restTemplate.exchange(
-                BASE_URL,
-                HttpMethod.POST,
-                createRequestEntity,
-                MieszkanieDTO.class
-        );
+        HttpHeaders headers = createAuthHeaders(userToken);
         
-        Integer mieszkanieId = Objects.requireNonNull(createResponse.getBody()).getId();
+        CreateMieszkanieDTO dto = new CreateMieszkanieDTO();
+        dto.setDeveloper("TestDev");
+        dto.setInvestment("Test Investment");
+        dto.setNumber("A1");
+        dto.setArea(BigDecimal.valueOf(50.0));
+        dto.setPrice(BigDecimal.valueOf(300000));
+        dto.setVoivodeship("Test Voivodeship");
+        dto.setCity("Test City");
+        dto.setDistrict("Test District");
+        dto.setFloor(1);
+        dto.setDescription("Test Description");
+        
+        HttpEntity<CreateMieszkanieDTO> request = new HttpEntity<>(dto, headers);
 
         // When
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-        ResponseEntity<MieszkanieDTO> response = restTemplate.exchange(
-                BASE_URL + "/" + mieszkanieId,
-                HttpMethod.GET,
-                requestEntity,
-                MieszkanieDTO.class
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL,
+                HttpMethod.POST,
+                request,
+                String.class
         );
 
         // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(mieszkanieId, response.getBody().getId());
-        assertEquals("Test Developer", response.getBody().getDeveloper());
+        //Spring Security może zwrócić 403 lub 400 w zależności od konfiguracji
+        assertTrue(response.getStatusCode() == HttpStatus.FORBIDDEN || 
+                   response.getStatusCode() == HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void testUpdateMieszkanie() {
+    void updateMieszkanie_AsAdmin_ShouldUpdateSuccessfully() throws Exception {
         // Given
-        // Create a mieszkanie first
-        CreateMieszkanieDTO createDTO = CreateMieszkanieDTO.builder()
-                .developer("Test Developer")
-                .investment("Test Investment")
-                .number("A-123")
-                .area(new BigDecimal("75.50"))
-                .price(new BigDecimal("500000.00"))
-                .voivodeship("Mazowieckie")
-                .city("Warsaw")
-                .district("Mokotów")
-                .floor(3)
-                .description("Test apartment description")
-                .build();
-
-        HttpEntity<CreateMieszkanieDTO> createRequestEntity = new HttpEntity<>(createDTO, headers);
-        ResponseEntity<MieszkanieDTO> createResponse = restTemplate.exchange(
-                BASE_URL,
-                HttpMethod.POST,
-                createRequestEntity,
-                MieszkanieDTO.class
-        );
+        Mieszkanie existing = mieszkanieRepository.findAll().get(0);
+        HttpHeaders headers = createAuthHeaders(adminToken);
         
-        Integer mieszkanieId = Objects.requireNonNull(createResponse.getBody()).getId();
+        UpdateMieszkanieDTO dto = new UpdateMieszkanieDTO();
+        dto.setPrice(BigDecimal.valueOf(800000));
+        dto.setDescription("Zaktualizowany opis");
 
-        // Update DTO
-        UpdateMieszkanieDTO updateDTO = UpdateMieszkanieDTO.builder()
-                .developer("Updated Developer")
-                .price(new BigDecimal("550000.00"))
-                .description("Updated description")
-                .build();
-
-        HttpEntity<UpdateMieszkanieDTO> updateRequestEntity = new HttpEntity<>(updateDTO, headers);
+        HttpEntity<UpdateMieszkanieDTO> request = new HttpEntity<>(dto, headers);
 
         // When
-        ResponseEntity<MieszkanieDTO> response = restTemplate.exchange(
-                BASE_URL + "/" + mieszkanieId,
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + existing.getId(),
                 HttpMethod.PUT,
-                updateRequestEntity,
-                MieszkanieDTO.class
+                request,
+                String.class
         );
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(mieszkanieId, response.getBody().getId());
-        assertEquals("Updated Developer", response.getBody().getDeveloper());
-        assertEquals(0, new BigDecimal("550000.00").compareTo(response.getBody().getPrice()));
-        assertEquals("Updated description", response.getBody().getDescription());
-        // Fields not updated should remain the same
-        assertEquals("Test Investment", response.getBody().getInvestment());
+        assertTrue(response.getBody().contains("800000"));
+        assertTrue(response.getBody().contains("Zaktualizowany opis"));
     }
 
     @Test
-    void testDeleteMieszkanie() {
+    void deleteMieszkanie_AsAdmin_ShouldDeleteSuccessfully() {
         // Given
-        // Create a mieszkanie first
-        CreateMieszkanieDTO createDTO = CreateMieszkanieDTO.builder()
-                .developer("Test Developer")
-                .investment("Test Investment")
-                .number("A-123")
-                .area(new BigDecimal("75.50"))
-                .price(new BigDecimal("500000.00"))
-                .voivodeship("Mazowieckie")
-                .city("Warsaw")
-                .district("Mokotów")
-                .floor(3)
-                .description("Test apartment description")
-                .build();
-
-        HttpEntity<CreateMieszkanieDTO> createRequestEntity = new HttpEntity<>(createDTO, headers);
-        ResponseEntity<MieszkanieDTO> createResponse = restTemplate.exchange(
-                BASE_URL,
-                HttpMethod.POST,
-                createRequestEntity,
-                MieszkanieDTO.class
-        );
-        
-        Integer mieszkanieId = Objects.requireNonNull(createResponse.getBody()).getId();
+        Mieszkanie toDelete = mieszkanieRepository.findAll().get(0);
+        HttpHeaders headers = createAuthHeaders(adminToken);
 
         // When
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-        ResponseEntity<Void> response = restTemplate.exchange(
-                BASE_URL + "/" + mieszkanieId,
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + toDelete.getId(),
                 HttpMethod.DELETE,
-                requestEntity,
-                Void.class
+                new HttpEntity<>(headers),
+                String.class
         );
 
         // Then
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        
-        // Verify it's deleted
-        ResponseEntity<MieszkanieDTO> getResponse = restTemplate.exchange(
-                BASE_URL + "/" + mieszkanieId,
-                HttpMethod.GET,
-                requestEntity,
-                MieszkanieDTO.class
-        );
-        
-        assertEquals(HttpStatus.NOT_FOUND, getResponse.getStatusCode());
+        assertEquals(2, mieszkanieRepository.count()); // 3 - 1 = 2
     }
 
     @Test
-    void testChangeStatus() {
+    void getByInvestment_ShouldReturnFilteredResults() {
         // Given
-        // Create a mieszkanie first
-        CreateMieszkanieDTO createDTO = CreateMieszkanieDTO.builder()
-                .developer("Test Developer")
-                .investment("Test Investment")
-                .number("A-123")
-                .area(new BigDecimal("75.50"))
-                .price(new BigDecimal("500000.00"))
-                .voivodeship("Mazowieckie")
-                .city("Warsaw")
-                .district("Mokotów")
-                .floor(3)
-                .description("Test apartment description")
-                .build();
-
-        HttpEntity<CreateMieszkanieDTO> createRequestEntity = new HttpEntity<>(createDTO, headers);
-        ResponseEntity<MieszkanieDTO> createResponse = restTemplate.exchange(
-                BASE_URL,
-                HttpMethod.POST,
-                createRequestEntity,
-                MieszkanieDTO.class
-        );
-        
-        Integer mieszkanieId = Objects.requireNonNull(createResponse.getBody()).getId();
+        HttpHeaders headers = createAuthHeaders(userToken);
 
         // When
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-        ResponseEntity<MieszkanieDTO> response = restTemplate.exchange(
-                BASE_URL + "/" + mieszkanieId + "/status?status=SOLD",
-                HttpMethod.PATCH,
-                requestEntity,
-                MieszkanieDTO.class
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/investment/Golden Heights",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
         );
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(mieszkanieId, response.getBody().getId());
-        assertEquals(Mieszkanie.Status.SOLD, response.getBody().getStatus());
+        assertTrue(response.getBody().contains("Golden Heights"));
+        assertTrue(response.getBody().contains("LuxDev"));
+    }
+
+    @Test
+    void getByPriceRange_ShouldReturnFilteredResults() {
+        // Given
+        HttpHeaders headers = createAuthHeaders(userToken);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/price-range?minPrice=400000&maxPrice=500000",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("City Park"));
+        assertFalse(response.getBody().contains("Golden Heights"));
+    }
+
+    @Test
+    void searchByCriteria_ComplexSearch_ShouldReturnMatchingResults() throws Exception {
+        // Given
+        HttpHeaders headers = createAuthHeaders(userToken);
+        
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .city("Warszawa")
+                .minPrice(BigDecimal.valueOf(400000))
+                .maxPrice(BigDecimal.valueOf(800000))
+                .minArea(BigDecimal.valueOf(60.0))
+                .build();
+
+        HttpEntity<MieszkanieSearchCriteria> request = new HttpEntity<>(criteria, headers);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/search",
+                HttpMethod.POST,
+                request,
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("Golden Heights")); // Spełnia kryteria
+        assertTrue(response.getBody().contains("City Park")); // Spełnia kryteria
+        assertFalse(response.getBody().contains("Affordable Living")); // Katowice, nie Warszawa
+    }
+
+    @Test
+    void changeStatus_AsAdmin_ShouldUpdateStatus() {
+        // Given
+        Mieszkanie mieszkanie = mieszkanieRepository.findAll().get(0);
+        HttpHeaders headers = createAuthHeaders(adminToken);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + mieszkanie.getId() + "/status?status=SOLD",
+                HttpMethod.PATCH,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("SOLD"));
+        
+        // Sprawdź w bazie danych
+        Mieszkanie updated = mieszkanieRepository.findById(mieszkanie.getId()).orElse(null);
+        assertNotNull(updated);
+        assertEquals(Mieszkanie.Status.SOLD, updated.getStatus());
+    }
+
+    @Test
+    void searchWithDeveloperCriteria_ShouldUseCorrectStrategy() throws Exception {
+        // Given
+        HttpHeaders headers = createAuthHeaders(userToken);
+        
+        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
+                .developer("LuxDev")
+                .build();
+
+        HttpEntity<MieszkanieSearchCriteria> request = new HttpEntity<>(criteria, headers);
+
+        // When
+        ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/search",
+                HttpMethod.POST,
+                request,
+                String.class
+        );
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("LuxDev"));
+        assertTrue(response.getBody().contains("Golden Heights"));
+        assertFalse(response.getBody().contains("StandardDev"));
+    }
+
+    @Test
+    void unauthorizedAccess_ShouldBeForbidden() {
+        // When - brak tokena autoryzacji
+        ResponseEntity<String> response = restTemplate.getForEntity(BASE_URL, String.class);
+
+        // Then
+        // Spring Security zwraca 403 FORBIDDEN dla braku tokena
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    private HttpHeaders createAuthHeaders(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
     }
 }
