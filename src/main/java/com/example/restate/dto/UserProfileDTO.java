@@ -31,7 +31,7 @@ public class UserProfileDTO {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .role(user.getRole().name())
+                .role("ROLE_" + user.getRole().name())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())
                 .build();

@@ -14,6 +14,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 
@@ -28,17 +29,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
     }
-    
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // Wrap the response to ensure content is preserved
+        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+
+        // Skip authentication for login and register endpoints
+        String requestPath = request.getRequestURI();
+        if (requestPath.contains("/api/auth/login") || requestPath.contains("/api/auth/register")) {
+            filterChain.doFilter(request, responseWrapper);
+            responseWrapper.copyBodyToResponse();
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
-        
-        // Jeśli brak nagłówka Authorization, kontynuuj bez uwierzytelnienia
+
+        // If no Authorization header, continue without authentication
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(request, responseWrapper);
+            responseWrapper.copyBodyToResponse();
             return;
         }
 
@@ -55,7 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    
+
                     log.debug("Successfully authenticated user: {}", username);
                 } else {
                     log.warn("Invalid JWT token for user: {}", username);
@@ -64,9 +77,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.error("JWT authentication failed: {}", e.getMessage());
             SecurityContextHolder.clearContext();
-
         }
 
-        filterChain.doFilter(request, response);
+        // Continue the filter chain with the wrapped response
+        filterChain.doFilter(request, responseWrapper);
+
+        // Copy the content from the wrapper to the original response
+        responseWrapper.copyBodyToResponse();
     }
 }

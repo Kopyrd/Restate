@@ -75,9 +75,9 @@ public class UserController {
     @PostMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create admin user", description = "Admin only")
-    public ResponseEntity<User> createAdmin(@Valid @RequestBody User user) {
+    public ResponseEntity<UserProfileDTO> createAdmin(@Valid @RequestBody User user) {
         User admin = userService.createAdmin(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(admin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserProfileDTO.fromEntity(admin));
     }
 
     @GetMapping("/profile")
