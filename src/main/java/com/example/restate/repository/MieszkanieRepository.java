@@ -23,9 +23,6 @@ public interface MieszkanieRepository extends JpaRepository<Mieszkanie, Integer>
     List<Mieszkanie> findByPriceRange(@Param("minPrice") BigDecimal minPrice,
                                       @Param("maxPrice") BigDecimal maxPrice);
 
-    @Query("SELECT m FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea")
-    List<Mieszkanie> findByAreaRange(@Param("minArea") BigDecimal minArea,
-                                     @Param("maxArea") BigDecimal maxArea);
 
     // Paginated methods
     Page<Mieszkanie> findByDeveloper(String developer, Pageable pageable);
@@ -39,16 +36,9 @@ public interface MieszkanieRepository extends JpaRepository<Mieszkanie, Integer>
                                         @Param("maxPrice") BigDecimal maxPrice, 
                                         Pageable pageable);
 
-    @Query(value = "SELECT m FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea",
-           countQuery = "SELECT COUNT(m) FROM Mieszkanie m WHERE m.area BETWEEN :minArea AND :maxArea")
-    Page<Mieszkanie> findByAreaBetween(@Param("minArea") BigDecimal minArea, 
-                                       @Param("maxArea") BigDecimal maxArea, 
-                                       Pageable pageable);
 
 
     @Query("SELECT DISTINCT m.developer FROM Mieszkanie m")
     List<String> findAllDevelopers();
 
-    @Query("SELECT DISTINCT m.investment FROM Mieszkanie m WHERE m.developer = :developer")
-    List<String> findInvestmentsByDeveloper(@Param("developer") String developer);
 }

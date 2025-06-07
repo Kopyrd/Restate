@@ -1,7 +1,9 @@
 package com.example.restate.controller;
 
+import com.example.restate.dto.UpdateUserDTO;
 import com.example.restate.dto.UserProfileDTO;
 import com.example.restate.entity.User;
+import com.example.restate.exception.ResourceNotFoundException;
 import com.example.restate.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,15 +33,15 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @Operation(summary = "Get all users", description = "Available for all authenticated users")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all users", description = "Available for admin only")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.findAll());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @Operation(summary = "Get user by ID", description = "Available for all authenticated users")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get user by ID", description = "Available for admin only")
     public ResponseEntity<User> getUserById(
             @Parameter(description = "User ID") @PathVariable Long id) {
         return userService.findById(id)
@@ -50,11 +52,16 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update user", description = "Admin only")
-    public ResponseEntity<User> updateUser(
+    public ResponseEntity<UserProfileDTO> updateUser(
             @PathVariable Long id,
-            @Valid @RequestBody User user) {
-        User updated = userService.update(id, user);
-        return ResponseEntity.ok(updated);
+            @Valid @RequestBody UpdateUserDTO updateUserDTO) {
+        User existingUser = userService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        User userToUpdate = updateUserDTO.toEntity(existingUser);
+        User updated = userService.update(id, userToUpdate);
+
+        return ResponseEntity.ok(UserProfileDTO.fromEntity(updated));
     }
 
     @DeleteMapping("/{id}")

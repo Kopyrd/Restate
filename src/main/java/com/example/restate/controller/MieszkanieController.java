@@ -39,6 +39,7 @@ public class MieszkanieController {
 
     @GetMapping
     @Operation(summary = "Get all apartments")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<PageResponse<MieszkanieDTO>> getAllMieszkania(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -88,26 +89,12 @@ public class MieszkanieController {
         mieszkanieService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-    
-    @GetMapping("/developer/{developer}")
-    @Operation(summary = "Get apartments by developer")
-    public ResponseEntity<PageResponse<MieszkanieDTO>> getByDeveloper(
-            @PathVariable String developer,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
 
-        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
-                .developer(developer)
-                .build();
-
-        return executeStrategySearch(SearchStrategy.SearchType.SIMPLE, criteria, page, size, sortBy, sortDir);
-    }
 
 
     @GetMapping("/investment/{investment}")
     @Operation(summary = "Get apartments by investment")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<PageResponse<MieszkanieDTO>> getByInvestment(
             @PathVariable String investment,
             @RequestParam(defaultValue = "0") int page,
@@ -125,6 +112,7 @@ public class MieszkanieController {
 
     @GetMapping("/price-range")
     @Operation(summary = "Get apartments by price range")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<PageResponse<MieszkanieDTO>> getByPriceRange(
             @RequestParam BigDecimal minPrice,
             @RequestParam BigDecimal maxPrice,
@@ -142,27 +130,11 @@ public class MieszkanieController {
     }
 
 
-    @GetMapping("/area-range")
-    @Operation(summary = "Get apartments by area range")
-    public ResponseEntity<PageResponse<MieszkanieDTO>> getByAreaRange(
-            @RequestParam BigDecimal minArea,
-            @RequestParam BigDecimal maxArea,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        MieszkanieSearchCriteria criteria = MieszkanieSearchCriteria.builder()
-                .minArea(minArea)
-                .maxArea(maxArea)
-                .build();
-
-        return executeStrategySearch(SearchStrategy.SearchType.ADVANCED, criteria, page, size, sortBy, sortDir);
-    }
 
 
     @PostMapping("/search")
     @Operation(summary = "Search apartments by multiple criteria")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<PageResponse<MieszkanieDTO>> searchByCriteria(
             @RequestBody MieszkanieSearchCriteria criteria,
             @RequestParam(defaultValue = "0") int page,
@@ -207,11 +179,6 @@ private boolean hasOtherCriteria(MieszkanieSearchCriteria criteria) {
            hasAdvancedCriteria(criteria);
 }
 
-    @GetMapping("/developers/{developer}/investments")
-    @Operation(summary = "Get investments by developer")
-    public ResponseEntity<List<String>> getInvestmentsByDeveloper(@PathVariable String developer) {
-        return ResponseEntity.ok(mieszkanieService.getInvestmentsByDeveloper(developer));
-    }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
