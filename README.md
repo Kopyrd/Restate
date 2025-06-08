@@ -2,7 +2,7 @@
 
 REstate to aplikacja do zarządzania nieruchomościami 
 - zbudowana w technologii Spring Boot. 
-- Umożliwia użytkownikom przeglądanie ofert nieruchomości, a administratorom zarządzanie mieszkaniami, użytkownikami i innymi zasobami.
+- Umożliwia użytkownikom przeglądanie ofert nieruchomości, a administratorom zarządzanie mieszkaniami i użytkownikami..
 
 ## Spis treści
 
@@ -64,7 +64,8 @@ REstate to aplikacja do zarządzania nieruchomościami
 2. Uruchom kontenery:
 
     ```bash
-    docker-compose up --build -d  
+    docker-compose up --build -d  //pierwsze uruchomienie
+    docker-compose up -d          //kolejne uruchomienie obrazu
     ```
 
 3. Aplikacja będzie dostępna pod adresem http://localhost:8080
@@ -109,18 +110,18 @@ Aplikacja wykorzystuje JWT (JSON Web Token):
 - `PUT /api/users/{id}` – aktualizuj użytkownika (admin)
 - `DELETE /api/users/{id}` – usuń użytkownika (admin)
 - `POST /api/users/admin` – dodaj nowego administratora (admin)
-- `GET /api/users/profile` – profil zalogowanego użytkownika
-- `PUT /api/users/me` – aktualizacja profilu użytkownika
+- `GET /api/users/profile` – profil zalogowanego użytkownika (user / admin)
+- `PUT /api/users/me` – aktualizacja profilu użytkownika (user /admin)
 
 #### Properties (Mieszkania)
 - `GET /api/mieszkania` – pobierz wszystkie mieszkania
-- `GET /api/mieszkania/{id}` – szczegóły mieszkania /jedyny dostepny dla niezalogowanego uzytkownika/
+- `GET /api/mieszkania/{id}` – szczegóły mieszkania (jedyny dostepny dla niezalogowanego uzytkownika)
 - `POST /api/mieszkania` – dodaj mieszkanie (admin)
 - `PUT /api/mieszkania/{id}` – edytuj mieszkanie (admin)
 - `DELETE /api/mieszkania/{id}` – usuń mieszkanie (admin)
 - `GET /api/mieszkania/investment/{investment}` – mieszkania wg inwestycji
 - `GET /api/mieszkania/price-range` – mieszkania wg ceny
-- `POST /api/mieszkania/search` – wyszukiwanie mieszkań
+- `POST /api/mieszkania/search` – zaawansowane wyszukiwanie mieszkań
 - `PATCH /api/mieszkania/{id}/status` – zmiana statusu mieszkania (admin)
 
 Endpointy, które nie modyfikują informacji lecz je pobierają - dostępne dla każdego autoryzowanego użytkownika.
@@ -159,136 +160,11 @@ Pozostałe endpointy dostępne tylko dla administratora.
 - `created_at`
 - `updated_at`
 
+## Testy jednostkowe i integracyjne
 
+**Wyniki pokrycia - testy jednostkowe**
+![Unit Tests](docs/images/UTest.png)
 
-## Struktura projektu
-├───.idea
-│   └───dataSources
-│       ├───7b69ce84-cca4-4db8-97e5-b2c41dd2d37f
-│       │   └───storage_v2
-│       │       └───_src_
-│       │           └───database
-│       │               ├───mieszkania.gNTaaA
-│       │               │   └───schema
-│       │               └───postgres.edMnLQ
-│       │                   └───schema
-│       └───d5f09275-522b-4bfd-a89f-076d0b11815e
-│           └───storage_v2
-│               └───_src_
-│                   └───database
-│                       └───mieszkania.gNTaaA
-│                           └───schema
-├───.mvn
-│   └───wrapper
-├───data
-├───db
-│   └───migration
-├───docker-init
-├───docs
-│   └───images
-├───src
-│   ├───main
-│   │   ├───java
-│   │   │   └───com
-│   │   │       └───example
-│   │   │           └───restate
-│   │   │               ├───config
-│   │   │               ├───controller
-│   │   │               ├───dto
-│   │   │               ├───entity
-│   │   │               ├───exception
-│   │   │               ├───repository
-│   │   │               ├───security
-│   │   │               ├───service
-│   │   │               │   ├───impl
-│   │   │               │   └───search
-│   │   │               └───util
-│   │   └───resources
-│   │       ├───db
-│   │       │   └───migration
-│   │       ├───static
-│   │       └───templates
-│   └───test
-│       ├───java
-│       │   └───com
-│       │       └───example
-│       │           └───restate
-│       │               ├───config
-│       │               ├───controller
-│       │               ├───exception
-│       │               ├───repository
-│       │               ├───security
-│       │               ├───service
-│       │               │   ├───impl
-│       │               │   └───search
-│       │               └───util
-│       └───resources
-└───target
-├───classes
-│   ├───com
-│   │   └───example
-│   │       └───restate
-│   │           ├───config
-│   │           ├───controller
-│   │           ├───dto
-│   │           ├───entity
-│   │           ├───exception
-│   │           ├───repository
-│   │           ├───security
-│   │           ├───service
-│   │           │   ├───impl
-│   │           │   └───search
-│   │           └───util
-│   └───db
-│       └───migration
-├───failsafe-reports
-├───generated-sources
-│   └───annotations
-├───generated-test-sources
-│   └───test-annotations
-├───maven-archiver
-├───maven-status
-│   └───maven-compiler-plugin
-│       ├───compile
-│       │   └───default-compile
-│       └───testCompile
-│           └───default-testCompile
-├───site
-│   ├───jacoco
-│   │   ├───com.example.restate
-│   │   ├───com.example.restate.config
-│   │   ├───com.example.restate.controller
-│   │   ├───com.example.restate.dto
-│   │   ├───com.example.restate.entity
-│   │   ├───com.example.restate.exception
-│   │   ├───com.example.restate.security
-│   │   ├───com.example.restate.service.impl
-│   │   ├───com.example.restate.service.search
-│   │   ├───com.example.restate.util
-│   │   └───jacoco-resources
-│   └───jacoco-it
-│       ├───com.example.restate
-│       ├───com.example.restate.config
-│       ├───com.example.restate.controller
-│       ├───com.example.restate.dto
-│       ├───com.example.restate.entity
-│       ├───com.example.restate.exception
-│       ├───com.example.restate.security
-│       ├───com.example.restate.service.impl
-│       ├───com.example.restate.service.search
-│       ├───com.example.restate.util
-│       └───jacoco-resources
-├───surefire-reports
-└───test-classes
-└───com
-└───example
-└───restate
-├───config
-├───controller
-├───exception
-├───security
-├───service
-│   ├───impl
-│   └───search
-└───util
+**Wyniki pokrycia - testy integracyjne**
+![Integration Tests](docs/images/ITEST.png)
 
