@@ -1,6 +1,6 @@
 # REstate - System Zarządzania Nieruchomościami
 
-REstate to aplikacja do zarządzania nieruchomościami 
+REstate to aplikacja do zarządzania ofertami sprzedzaży mieszkań ofert deweloperów. 
 - zbudowana w technologii Spring Boot. 
 - Umożliwia użytkownikom przeglądanie ofert nieruchomości, a administratorom zarządzanie mieszkaniami i użytkownikami..
 
@@ -31,8 +31,8 @@ REstate to aplikacja do zarządzania nieruchomościami
 ### Wymagania wstępne
 
 - Java 21 lub wyższa
-- Maven 3.6 lub wyższy
-- PostgreSQL 16 (lub Docker)
+- Maven 3.9.9 lub wyższy
+- Docker
 
 ### Instalacja
 
@@ -87,9 +87,7 @@ Aplikacja wykorzystuje JWT (JSON Web Token):
    - **admin**: password123
    - **user1**: password123
    - aby się zalogować nalezy skorzystać z endpointu '/api/auth/login` - wpisac dane jednego z ww. użytkownikow,
-     a następnie skopiować wygenerowany token który jest w przykładowej postaci:
-- eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc0OTMzODUzMSwiZXhwIjoxNzQ5Mzc0NTMxfQ.nyOFWVNVy8pXVe6UZQK_HyzXRVVnHdgk4EB7jUeTCSg
-  wygenerowany token nalezy wkleic w polu "Authorize" i aktywować.
+     a następnie skopiować wygenerowany token w polu authorize.
 - 
 3. Token jest dołączany do każdego żądania w nagłówku `Authorization`
 4. Serwer weryfikuje token dla chronionych endpointów
@@ -130,6 +128,12 @@ Pozostałe endpointy dostępne tylko dla administratora.
 ## Schemat bazy danych
 ![ERD Diagram](docs/images/ERD.png)
 
+## Prawa autorskie bazy danych:
+Baza zawiera rzeczywiste ceny ofertowe mieszkań oferowanych przez deweloperów, które pochodzą z wycieku danych, udostępnionych na stronie internetowej:
+- zhttps://okna-bej.github.io/mieszkanka/ - wersja z lutego 2025
+Link do profilu użytkownika na portalu x.com który udostępnia dane:
+- https://x.com/okna_bej
+
 ### User
 
 - `id`
@@ -166,5 +170,5 @@ Pozostałe endpointy dostępne tylko dla administratora.
 ![Unit Tests](docs/images/UTest.png)
 
 **Wyniki pokrycia - testy integracyjne**
-![Integration Tests](docs/images/ITEST.png)
+![Integration Tests](docs/images/ITest.png)
 
